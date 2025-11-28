@@ -1,39 +1,31 @@
 
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, TrendInsight, CourseMatch, AgentConfig } from '../types';
-import { fetchTrendInsights, matchCurriculum } from '../services/geminiService';
-import { TrendingUp, BookOpen, User, Star, ArrowRight, RefreshCcw } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { matchCurriculum } from '../services/geminiService';
+import { BookOpen, User, Star, ArrowRight, RefreshCcw, ChevronLeft } from 'lucide-react';
 
 interface Props {
   analysisData: AnalysisResult;
-  onNext: (trends: TrendInsight[], matches: CourseMatch[]) => void;
-  agentConfigs: AgentConfig[];
+  trendData: TrendInsight[];
+  onNext: (matches: CourseMatch[]) => void;
+  onBack: () => void;
+  agentConfig: AgentConfig | undefined;
 }
 
-export const ResearchAndMatching: React.FC<Props> = ({ analysisData, onNext, agentConfigs }) => {
-  const [trends, setTrends] = useState<TrendInsight[]>([]);
+export const StrategyPlanning: React.FC<Props> = ({ analysisData, trendData, onNext, onBack, agentConfig }) => {
   const [matches, setMatches] = useState<CourseMatch[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Find specific agents
-  const trendAgent = agentConfigs.find(a => a.id === 'trend-researcher');
-  const matchAgent = agentConfigs.find(a => a.id === 'curriculum-matcher');
-
   useEffect(() => {
-    const processStrategy = async () => {
-      // Execute sequentially so trends can inform curriculum matching
-      const trendResults = await fetchTrendInsights(analysisData.modules, trendAgent?.systemPrompt);
-      setTrends(trendResults);
-
-      const matchResults = await matchCurriculum(analysisData.modules, trendResults, matchAgent?.systemPrompt);
-      setMatches(matchResults);
-      
+    const loadMatches = async () => {
+      // Now we pass trends to matchCurriculum to inform strategy
+      const results = await matchCurriculum(analysisData.modules, trendData, agentConfig?.systemPrompt);
+      setMatches(results);
       setLoading(false);
     };
-    processStrategy();
+    loadMatches();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [analysisData]);
+  }, []);
 
   if (loading) {
     return (
@@ -41,14 +33,14 @@ export const ResearchAndMatching: React.FC<Props> = ({ analysisData, onNext, age
         <div className="relative">
           <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin"></div>
           <div className="absolute inset-0 flex items-center justify-center">
-            <TrendingUp size={24} className="text-blue-600" />
+            <BookOpen size={24} className="text-blue-600" />
           </div>
         </div>
         <div className="text-center space-y-2">
-           <h3 className="text-lg font-semibold text-slate-800">AI 에이전트 협업 중...</h3>
+           <h3 className="text-lg font-semibold text-slate-800">전략적 교육 과정 매칭 중...</h3>
            <p className="text-slate-500">
-             <span className="font-semibold text-blue-600">{trendAgent?.name}</span>가 시장 동향을 분석하고,<br/>
-             <span className="font-semibold text-blue-600">{matchAgent?.name}</span>가 최적의 강사를 찾고 있습니다.
+             <span className="font-semibold text-blue-600">{agentConfig?.name || 'Matching Agent'}</span>가<br/>
+             RFP 요구사항과 트렌드 분석 결과를 종합하여 최적의 솔루션을 설계합니다.
            </p>
         </div>
       </div>
@@ -57,65 +49,11 @@ export const ResearchAndMatching: React.FC<Props> = ({ analysisData, onNext, age
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-12">
-      
-      {/* Trend Section */}
-      <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-indigo-50">
-          <h3 className="text-lg font-bold text-indigo-900 flex items-center gap-2">
-            <TrendingUp size={20} />
-            트렌드 리서치 인사이트
-          </h3>
-          <span className="text-xs font-semibold bg-indigo-200 text-indigo-800 px-2 py-1 rounded">By {trendAgent?.name}</span>
-        </div>
-        <div className="p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-2 space-y-4">
-                {trends.map((trend, idx) => (
-                    <div key={idx} className="flex gap-4 p-4 border border-slate-100 rounded-lg hover:shadow-md transition-shadow bg-slate-50">
-                        <div className="flex-shrink-0 w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm text-indigo-600 font-bold border border-indigo-100">
-                            {idx + 1}
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-800 mb-1">{trend.topic}</h4>
-                            <p className="text-sm text-slate-600 mb-2">{trend.insight}</p>
-                            <div className="flex items-center gap-2 text-xs text-slate-400">
-                                <span>출처: {trend.source}</span>
-                                <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                <span>연관도: {trend.relevanceScore}%</span>
-                            </div>
-                        </div>
-                    </div>
-                ))}
-            </div>
-            <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-inner">
-                <h4 className="text-sm font-semibold text-slate-600 mb-4 text-center">주제별 관심도 분석</h4>
-                <div className="h-48 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={trends}>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                            <XAxis dataKey="topic" hide />
-                            <YAxis />
-                            <Tooltip 
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                cursor={{fill: 'transparent'}}
-                            />
-                            <Bar dataKey="relevanceScore" radius={[4, 4, 0, 0]}>
-                                {trends.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={['#6366f1', '#8b5cf6', '#ec4899'][index % 3]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                </div>
-            </div>
-        </div>
-      </section>
-
-      {/* Matching Section */}
       <section className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-blue-50">
           <h3 className="text-lg font-bold text-blue-900 flex items-center gap-2">
             <BookOpen size={20} />
-            과정 및 강사 매칭 결과
+            과정 및 강사 매칭 전략
           </h3>
           <button className="text-xs flex items-center gap-1 text-blue-600 hover:underline">
             <RefreshCcw size={12} /> 매칭 다시 실행
@@ -174,9 +112,15 @@ export const ResearchAndMatching: React.FC<Props> = ({ analysisData, onNext, age
         </div>
       </section>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex justify-between pt-4">
         <button 
-          onClick={() => onNext(trends, matches)}
+            onClick={onBack}
+            className="flex items-center gap-1 px-4 py-2 text-slate-500 hover:text-slate-800 font-medium text-sm transition-colors"
+        >
+            <ChevronLeft size={16} /> 이전 단계
+        </button>
+        <button 
+          onClick={() => onNext(matches)}
           className="px-8 py-3 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all flex items-center gap-2"
         >
           제안서 초안 생성하기 <ArrowRight size={18} />

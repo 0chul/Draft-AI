@@ -100,9 +100,9 @@ export const fetchTrendInsights = async (modules: string[], systemPrompt?: strin
 
 /**
  * Matches internal curriculum to the requirements.
- * Accepts an optional system prompt override.
+ * Accepts trends to better inform the strategy.
  */
-export const matchCurriculum = async (modules: string[], systemPrompt?: string): Promise<CourseMatch[]> => {
+export const matchCurriculum = async (modules: string[], trends: TrendInsight[], systemPrompt?: string): Promise<CourseMatch[]> => {
   if (!process.env.API_KEY) {
     // Fallback data
     return modules.map((mod, idx) => ({
@@ -110,17 +110,22 @@ export const matchCurriculum = async (modules: string[], systemPrompt?: string):
       moduleName: mod,
       courseTitle: `Expert ${mod} 마스터 클래스`,
       instructor: idx % 2 === 0 ? "김철수 수석" : "이영희 이사",
-      matchReason: "요구사항의 핵심 키워드와 내부 과정 커리큘럼이 95% 일치합니다.",
+      matchReason: `트렌드 분석 결과(${trends[0]?.topic || '최신 동향'})를 반영하여 해당 모듈을 선정했습니다. 키워드 매칭률 95%.`,
       matchScore: 90 + Math.floor(Math.random() * 10),
       isExternal: false
     }));
   }
 
   try {
+    // Simplify trends for the prompt
+    const trendSummary = trends.map(t => `${t.topic}: ${t.insight}`).join("; ");
+
     const basePrompt = `
       다음 RFP 요구 모듈에 대해 가장 적합한 가상의 내부 교육 과정과 강사를 매칭하고 이유를 설명해주세요.
+      전략 수립 시, 사전에 분석된 트렌드 인사이트를 참고하여 매칭 이유를 강화해주세요.
       
       요구 모듈: ${modules.join(", ")}
+      참고 트렌드: ${trendSummary}
       
       응답 JSON 포맷:
       [{ "id": string, "moduleName": string, "courseTitle": string, "instructor": string, "matchReason": string, "matchScore": number, "isExternal": boolean }]

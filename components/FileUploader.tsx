@@ -47,7 +47,8 @@ export const FileUploader: React.FC<FileUploaderProps> = ({ onUploadComplete }) 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       // Important: Convert FileList to Array immediately before async operations or clearing input
-      const selectedFiles = Array.from(e.target.files);
+      // Cast to File[] to resolve TypeScript error: Argument of type 'unknown[]' is not assignable to parameter of type 'File[]'
+      const selectedFiles = Array.from(e.target.files) as File[];
       processFiles(selectedFiles);
     }
     // Reset value to allow selecting the same file again if needed

@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { StepIndicator } from './components/StepIndicator';
 import { FileUploader } from './components/FileUploader';
 import { RequirementsReview } from './components/RequirementsReview';
-import { ResearchAndMatching } from './components/ResearchAndMatching';
+import { TrendResearch } from './components/TrendResearch';
+import { StrategyPlanning } from './components/StrategyPlanning';
 import { ProposalPreview } from './components/ProposalPreview';
 import { AgentManagement } from './components/AgentManagement';
 import { AppStep, RFPMetadata, AnalysisResult, TrendInsight, CourseMatch, AgentConfig } from './types';
@@ -75,13 +77,23 @@ const App: React.FC = () => {
 
   const handleAnalysisConfirm = (data: AnalysisResult) => {
     setAnalysisResult(data);
+    setCurrentStep(AppStep.RESEARCH);
+  };
+
+  const handleResearchComplete = (trendData: TrendInsight[]) => {
+    setTrends(trendData);
     setCurrentStep(AppStep.STRATEGY);
   };
 
-  const handleStrategyComplete = (trendData: TrendInsight[], matchData: CourseMatch[]) => {
-    setTrends(trendData);
+  const handleStrategyComplete = (matchData: CourseMatch[]) => {
     setMatches(matchData);
     setCurrentStep(AppStep.PREVIEW);
+  };
+
+  const handleBack = () => {
+    if (currentStep > AppStep.UPLOAD) {
+      setCurrentStep(prev => prev - 1);
+    }
   };
 
   const toggleView = () => {
@@ -140,14 +152,28 @@ const App: React.FC = () => {
                     <RequirementsReview 
                     files={uploadedFiles} 
                     onConfirm={handleAnalysisConfirm} 
+                    onBack={handleBack}
                     />
                 )}
 
+                {/* Split Step 1: Trend Research */}
+                {currentStep === AppStep.RESEARCH && analysisResult && (
+                    <TrendResearch
+                    analysisData={analysisResult}
+                    onNext={handleResearchComplete}
+                    onBack={handleBack}
+                    agentConfig={agentConfigs.find(a => a.id === 'trend-researcher')}
+                    />
+                )}
+
+                {/* Split Step 2: Strategy Planning (Matching) */}
                 {currentStep === AppStep.STRATEGY && analysisResult && (
-                    <ResearchAndMatching 
+                    <StrategyPlanning 
                     analysisData={analysisResult} 
+                    trendData={trends}
                     onNext={handleStrategyComplete} 
-                    agentConfigs={agentConfigs}
+                    onBack={handleBack}
+                    agentConfig={agentConfigs.find(a => a.id === 'curriculum-matcher')}
                     />
                 )}
 

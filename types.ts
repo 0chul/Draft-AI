@@ -62,7 +62,8 @@ export interface AgentConfig {
 export enum AppStep {
   UPLOAD = 1,
   ANALYSIS = 2,
-  STRATEGY = 3,
-  PREVIEW = 4,
-  COMPLETE = 5
+  RESEARCH = 3,
+  STRATEGY = 4,
+  PREVIEW = 5,
+  COMPLETE = 6
 }
