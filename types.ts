@@ -61,6 +61,27 @@ export interface AgentConfig {
   temperature: number;
   systemPrompt: string;
   guardrails: string[];
+  apiKey?: string;
+}
+
+export interface PastProposal {
+  id: string;
+  title: string;
+  clientName: string;
+  industry: string;
+  date: string;
+  tags: string[];
+  fileName: string;
+}
+
+export interface InstructorProfile {
+  id: string;
+  name: string;
+  position: string;
+  expertise: string[];
+  bio: string;
+  email: string;
+  imageUrl?: string;
 }
 
 export enum AppStep {

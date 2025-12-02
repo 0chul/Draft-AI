@@ -7,8 +7,9 @@ import { TrendResearch } from './components/TrendResearch';
 import { StrategyPlanning } from './components/StrategyPlanning';
 import { ProposalPreview } from './components/ProposalPreview';
 import { AgentManagement } from './components/AgentManagement';
-import { AppStep, RFPMetadata, AnalysisResult, TrendInsight, CourseMatch, AgentConfig } from './types';
-import { Briefcase, Settings } from 'lucide-react';
+import { KnowledgeHub } from './components/KnowledgeHub';
+import { AppStep, RFPMetadata, AnalysisResult, TrendInsight, CourseMatch, AgentConfig, PastProposal, InstructorProfile } from './types';
+import { Briefcase, Settings, Database } from 'lucide-react';
 
 const DEFAULT_AGENTS: AgentConfig[] = [
   {
@@ -58,6 +59,21 @@ const DEFAULT_AGENTS: AgentConfig[] = [
   }
 ];
 
+// Mock Data for Knowledge Hub
+const MOCK_PROPOSALS: PastProposal[] = [
+    { id: 'p1', title: '2024 삼성전자 신입사원 입문교육 제안', clientName: '삼성전자', industry: '제조/전자', date: '2024-01-15', tags: ['신입사원', '비전내재화', '팀빌딩'], fileName: '2024_SE_Rookie.pptx' },
+    { id: 'p2', title: 'KB국민은행 디지털 리더십 아카데미', clientName: 'KB국민은행', industry: '금융', date: '2023-11-20', tags: ['리더십', 'DT', '금융트렌드'], fileName: 'KB_Digital_Leadership_v2.pptx' },
+    { id: 'p3', title: 'SK텔레콤 AI-Driven Work Way 워크숍', clientName: 'SK텔레콤', industry: '통신/IT', date: '2024-03-10', tags: ['AI활용', '업무효율화', '애자일'], fileName: 'SKT_AI_Work.pdf' },
+    { id: 'p4', title: 'LG화학 중간관리자 성과관리 과정', clientName: 'LG화학', industry: '화학/제조', date: '2023-09-05', tags: ['성과관리', '코칭', '피드백'], fileName: 'LG_Chem_PM.pptx' },
+];
+
+const MOCK_INSTRUCTORS: InstructorProfile[] = [
+    { id: 'i1', name: '김철수 수석', position: '리더십 센터장', expertise: ['리더십', '코칭', '조직문화'], bio: '전 삼성인력개발원 교수, 리더십 코칭 15년 경력', email: 'cs.kim@expert.co.kr' },
+    { id: 'i2', name: '이영희 이사', position: 'DT 교육팀장', expertise: ['디지털 트렌드', '데이터 리터러시', '생성형 AI'], bio: '카이스트 공학박사, 빅데이터 분석 전문가', email: 'yh.lee@expert.co.kr' },
+    { id: 'i3', name: '박민수 전문위원', position: '커뮤니케이션 파트장', expertise: ['소통', '협상', '갈등관리'], bio: '국제공인 협상 전문가, 커뮤니케이션 저서 3권 집필', email: 'ms.park@expert.co.kr' },
+    { id: 'i4', name: '최지혜 컨설턴트', position: 'CS 교육팀', expertise: ['고객경험(CX)', '서비스 마인드', '감정노동 관리'], bio: '전 항공사 승무원 교육 담당', email: 'jh.choi@expert.co.kr' },
+];
+
 const App: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<AppStep>(AppStep.UPLOAD);
   const [uploadedFiles, setUploadedFiles] = useState<RFPMetadata[]>([]);
@@ -65,10 +81,16 @@ const App: React.FC = () => {
   const [trends, setTrends] = useState<TrendInsight[]>([]);
   const [matches, setMatches] = useState<CourseMatch[]>([]);
   
-  // New State for Agent Management & API Key
-  const [view, setView] = useState<'wizard' | 'agents'>('wizard');
+  // Navigation View State
+  const [view, setView] = useState<'wizard' | 'agents' | 'knowledge'>('wizard');
+  
+  // Data State
   const [agentConfigs, setAgentConfigs] = useState<AgentConfig[]>(DEFAULT_AGENTS);
   const [apiKey, setApiKey] = useState<string>('');
+  
+  // Knowledge Hub State
+  const [pastProposals, setPastProposals] = useState<PastProposal[]>(MOCK_PROPOSALS);
+  const [instructors, setInstructors] = useState<InstructorProfile[]>(MOCK_INSTRUCTORS);
 
   // Handlers to advance steps
   const handleUploadComplete = (files: RFPMetadata[]) => {
@@ -97,10 +119,6 @@ const App: React.FC = () => {
     }
   };
 
-  const toggleView = () => {
-    setView(prev => prev === 'wizard' ? 'agents' : 'wizard');
-  };
-
   const handleSaveAgents = (updatedAgents: AgentConfig[]) => {
     setAgentConfigs(updatedAgents);
   };
@@ -117,14 +135,25 @@ const App: React.FC = () => {
             <span className="font-bold text-xl tracking-tight">Expert<span className="text-blue-400">Consulting</span></span>
             <span className="hidden sm:inline-block ml-2 text-xs bg-slate-800 px-2 py-0.5 rounded text-slate-300 border border-slate-700">Proposal Automation</span>
           </div>
-          <div className="flex items-center gap-4 text-sm">
-             <button 
-                onClick={toggleView}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors border ${view === 'agents' ? 'bg-blue-600 border-blue-500' : 'bg-slate-800 border-slate-700 hover:bg-slate-700'}`}
-             >
-                <Settings size={16} />
-                <span className="hidden sm:inline">에이전트 관리</span>
-             </button>
+          <div className="flex items-center gap-3 text-sm">
+             {/* Navigation Buttons */}
+             <div className="flex bg-slate-800 rounded-lg p-1 mr-4">
+                 <button 
+                    onClick={() => setView('knowledge')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${view === 'knowledge' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                 >
+                    <Database size={16} />
+                    <span className="hidden md:inline">지식 허브</span>
+                 </button>
+                 <button 
+                    onClick={() => setView('agents')}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-md transition-colors ${view === 'agents' ? 'bg-blue-600 text-white shadow-sm' : 'text-slate-400 hover:text-white hover:bg-slate-700'}`}
+                 >
+                    <Settings size={16} />
+                    <span className="hidden md:inline">에이전트 설정</span>
+                 </button>
+             </div>
+
              <span className="w-px h-4 bg-slate-700 mx-1"></span>
              <span className="hidden sm:block text-slate-400">안녕하세요, 김제안 수석컨설턴트님</span>
              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center font-bold text-sm">K</div>
@@ -142,6 +171,14 @@ const App: React.FC = () => {
                 onClose={() => setView('wizard')}
                 apiKey={apiKey}
                 onSaveApiKey={setApiKey}
+            />
+        ) : view === 'knowledge' ? (
+            <KnowledgeHub 
+                proposals={pastProposals}
+                instructors={instructors}
+                onUpdateProposals={setPastProposals}
+                onUpdateInstructors={setInstructors}
+                onClose={() => setView('wizard')}
             />
         ) : (
             <div className="animate-fade-in-up">
