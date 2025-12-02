@@ -10,19 +10,23 @@ interface Props {
   onNext: (trends: TrendInsight[]) => void;
   onBack: () => void;
   agentConfig: AgentConfig | undefined;
+  initialData: TrendInsight[];
+  apiKey?: string;
 }
 
-export const TrendResearch: React.FC<Props> = ({ analysisData, onNext, onBack, agentConfig }) => {
-  const [trends, setTrends] = useState<TrendInsight[]>([]);
-  const [loading, setLoading] = useState(true);
+export const TrendResearch: React.FC<Props> = ({ analysisData, onNext, onBack, agentConfig, initialData, apiKey }) => {
+  const [trends, setTrends] = useState<TrendInsight[]>(initialData);
+  const [loading, setLoading] = useState(initialData.length === 0);
 
   useEffect(() => {
-    const loadTrends = async () => {
-      const results = await fetchTrendInsights(analysisData.modules, agentConfig?.systemPrompt);
-      setTrends(results);
-      setLoading(false);
-    };
-    loadTrends();
+    if (initialData.length === 0) {
+        const loadTrends = async () => {
+        const results = await fetchTrendInsights(analysisData.modules, agentConfig?.systemPrompt, apiKey);
+        setTrends(results);
+        setLoading(false);
+        };
+        loadTrends();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

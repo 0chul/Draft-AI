@@ -6,10 +6,14 @@ export interface RFPMetadata {
 }
 
 export interface AnalysisResult {
+  clientName: string;
+  industry: string;
+  department: string;
   programName: string;
   objectives: string[];
   targetAudience: string;
   schedule: string;
+  location: string;
   modules: string[];
   specialRequests: string;
 }

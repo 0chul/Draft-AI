@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, AgentConfig, QualityAssessment } from '../types';
 import { generateProposalContent, evaluateProposalQuality } from '../services/geminiService';
-import { Download, Check, Maximize2, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Download, Check, Maximize2, ShieldCheck, AlertCircle, ChevronLeft } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface Props {
@@ -10,9 +10,11 @@ interface Props {
   trends: TrendInsight[];
   matches: CourseMatch[];
   agentConfigs: AgentConfig[];
+  apiKey?: string;
+  onBack?: () => void;
 }
 
-export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, agentConfigs }) => {
+export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, agentConfigs, apiKey, onBack }) => {
   const [slides, setSlides] = useState<ProposalSlide[]>([]);
   const [assessment, setAssessment] = useState<QualityAssessment | null>(null);
   const [generating, setGenerating] = useState(true);
@@ -23,12 +25,12 @@ export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, ag
   useEffect(() => {
     const createDraft = async () => {
       // Generate slides
-      const content = await generateProposalContent(analysis, trends, matches);
+      const content = await generateProposalContent(analysis, trends, matches, apiKey);
       setSlides(content);
       setGenerating(false);
 
       // Run Quality Assessment
-      const qualityResult = await evaluateProposalQuality(analysis, matches, qaAgent?.systemPrompt);
+      const qualityResult = await evaluateProposalQuality(analysis, matches, qaAgent?.systemPrompt, apiKey);
       setAssessment(qualityResult);
       setEvaluating(false);
     };
@@ -63,10 +65,21 @@ export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, ag
            <h2 className="text-2xl font-bold text-slate-900">제안서 초안 (Draft)</h2>
            <p className="text-slate-500">자동 생성된 슬라이드를 확인하고 다운로드하세요.</p>
         </div>
-        <button className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md font-semibold transition-all">
-          <Download size={20} />
-          PPTX 다운로드
-        </button>
+        <div className="flex gap-2">
+            {onBack && (
+                 <button 
+                 onClick={onBack}
+                 className="flex items-center gap-2 px-4 py-3 text-slate-600 hover:text-slate-800 font-medium transition-colors"
+                >
+                 <ChevronLeft size={20} />
+                 이전
+                </button>
+            )}
+            <button className="flex items-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md font-semibold transition-all">
+                <Download size={20} />
+                PPTX 다운로드
+            </button>
+        </div>
       </div>
 
       {/* Quality Assessment Section */}

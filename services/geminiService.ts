@@ -2,45 +2,131 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, QualityAssessment } from "../types";
 
-// Initialize Gemini Client
-// NOTE: In a real production app, the API key should be handled securely via a backend proxy.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-
 const DEFAULT_MODEL = "gemini-2.5-flash";
+
+// Helper to get AI instance
+const getAI = (apiKey?: string) => {
+  const key = apiKey || process.env.API_KEY;
+  if (!key) return null;
+  return new GoogleGenAI({ apiKey: key });
+};
 
 /**
  * Simulates analyzing an RFP document.
  */
-export const analyzeRFP = async (fileName: string): Promise<AnalysisResult> => {
-  // Simulate network/processing delay
-  await new Promise(resolve => setTimeout(resolve, 2000));
+export const analyzeRFP = async (fileName: string, systemPrompt?: string, apiKey?: string): Promise<AnalysisResult> => {
+  const ai = getAI(apiKey);
 
-  // In a real scenario, we would send the file content to Gemini here.
-  // For the demo, we return a high-quality mock based on the "Expert Consulting" context.
-  return {
-    programName: "2025년 차세대 리더십 역량 강화 과정",
-    objectives: [
-      "디지털 전환(DT) 시대에 맞는 리더십 함양",
-      "데이터 기반 의사결정 능력 강화",
-      "MZ세대 팀원과의 효과적인 소통 및 코칭 스킬 습득"
-    ],
-    targetAudience: "팀장급 및 예비 리더 30명",
-    schedule: "2025년 5월 중 (2박 3일 집합 교육)",
-    modules: [
-      "DT 트렌드와 리더의 역할",
-      "데이터 리터러시 워크숍",
-      "세대 공감 커뮤니케이션 & 코칭"
-    ],
-    specialRequests: "실습 위주의 구성 요청, 최신 트렌드 사례 포함 필수"
-  };
+  // If no API key is present, return the dynamic mock data
+  if (!ai) {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Fallback logic based on filename for demo purposes
+    const isTech = fileName.includes("AI") || fileName.includes("데이터") || fileName.includes("DT");
+    const isBank = fileName.includes("금융") || fileName.includes("은행");
+    
+    return {
+      clientName: isBank ? "한국미래은행" : (isTech ? "테크솔루션즈" : "대한제조(주)"),
+      industry: isBank ? "금융/은행" : (isTech ? "IT/소프트웨어" : "제조/화학"),
+      department: "인재개발팀",
+      programName: fileName.replace(".pdf", "").replace(".pptx", "") || "2025년 차세대 리더십 과정",
+      objectives: [
+        "디지털 전환(DT) 시대에 맞는 리더십 함양",
+        "데이터 기반 의사결정 능력 강화",
+        "MZ세대 팀원과의 효과적인 소통 및 코칭 스킬 습득"
+      ],
+      targetAudience: "팀장급 및 예비 리더 30명",
+      schedule: "2025년 5월 중 (2박 3일 집합 교육)",
+      location: "용인 엑스퍼트 연수원",
+      modules: [
+        "DT 트렌드와 리더의 역할",
+        "데이터 리터러시 워크숍",
+        "세대 공감 커뮤니케이션 & 코칭"
+      ],
+      specialRequests: "실습 위주의 구성 요청, 최신 트렌드 사례 포함 필수"
+    };
+  }
+
+  try {
+    // Real API Call
+    const prompt = `
+      Analyze the RFP file named "${fileName}". 
+      Since I cannot upload the actual PDF content in this demo, please hallucinate a realistic RFP content based on the filename.
+      Infer the industry, typical objectives for such a file name, and likely modules.
+      
+      Return the result in JSON format matching this schema:
+      {
+        clientName: string,
+        industry: string,
+        department: string,
+        programName: string,
+        objectives: string[],
+        targetAudience: string,
+        schedule: string,
+        location: string,
+        modules: string[],
+        specialRequests: string
+      }
+    `;
+
+    const config: any = {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          clientName: { type: Type.STRING },
+          industry: { type: Type.STRING },
+          department: { type: Type.STRING },
+          programName: { type: Type.STRING },
+          objectives: { type: Type.ARRAY, items: { type: Type.STRING } },
+          targetAudience: { type: Type.STRING },
+          schedule: { type: Type.STRING },
+          location: { type: Type.STRING },
+          modules: { type: Type.ARRAY, items: { type: Type.STRING } },
+          specialRequests: { type: Type.STRING },
+        }
+      }
+    };
+
+    if (systemPrompt) {
+      config.systemInstruction = systemPrompt;
+    }
+
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: prompt,
+      config: config
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    return JSON.parse(text) as AnalysisResult;
+
+  } catch (error) {
+    console.error("Gemini Analysis Error:", error);
+    // Return error fallback
+    return {
+      clientName: "Error",
+      industry: "Unknown",
+      department: "Unknown",
+      programName: "Analysis Failed",
+      objectives: ["Error analyzing file"],
+      targetAudience: "-",
+      schedule: "-",
+      location: "-",
+      modules: [],
+      specialRequests: "API Error"
+    };
+  }
 };
 
 /**
  * Generates Trend Insights based on the analyzed modules.
- * Accepts an optional system prompt override.
  */
-export const fetchTrendInsights = async (modules: string[], systemPrompt?: string): Promise<TrendInsight[]> => {
-  if (!process.env.API_KEY) {
+export const fetchTrendInsights = async (modules: string[], systemPrompt?: string, apiKey?: string): Promise<TrendInsight[]> => {
+  const ai = getAI(apiKey);
+
+  if (!ai) {
     // Fallback if no key provided
     return [
       { topic: "Digital Transformation", insight: "AI 도입 가속화에 따른 리더의 기술 이해도가 필수 역량으로 부상함.", source: "HBR 2024", relevanceScore: 95 },
@@ -58,8 +144,6 @@ export const fetchTrendInsights = async (modules: string[], systemPrompt?: strin
       [{ "topic": string, "insight": string, "source": string, "relevanceScore": number }]
     `;
 
-    // If a system prompt is provided, we prepend it as a system instruction (or context)
-    // Note: for 2.5-flash simple generateContent, we can include system instruction in config.
     const config: any = {
       responseMimeType: "application/json",
       responseSchema: {
@@ -100,10 +184,11 @@ export const fetchTrendInsights = async (modules: string[], systemPrompt?: strin
 
 /**
  * Matches internal curriculum to the requirements.
- * Accepts trends to better inform the strategy.
  */
-export const matchCurriculum = async (modules: string[], trends: TrendInsight[], systemPrompt?: string): Promise<CourseMatch[]> => {
-  if (!process.env.API_KEY) {
+export const matchCurriculum = async (modules: string[], trends: TrendInsight[], systemPrompt?: string, apiKey?: string): Promise<CourseMatch[]> => {
+  const ai = getAI(apiKey);
+
+  if (!ai) {
     // Fallback data
     return modules.map((mod, idx) => ({
       id: `course-${idx}`,
@@ -175,11 +260,16 @@ export const matchCurriculum = async (modules: string[], trends: TrendInsight[],
 /**
  * Generates slide content text based on structured data.
  */
-export const generateProposalContent = async (analysis: AnalysisResult, trends: TrendInsight[], matches: CourseMatch[]): Promise<ProposalSlide[]> => {
-    // Simulating slide generation logic
+export const generateProposalContent = async (analysis: AnalysisResult, trends: TrendInsight[], matches: CourseMatch[], apiKey?: string): Promise<ProposalSlide[]> => {
+    // Simulating slide generation logic - this is mostly deterministic templating, 
+    // but in a real app, you might use LLM to write the specific copy.
+    // For now, we just return the template filled with data.
+    
+    // NOTE: You could add LLM calls here using getAI(apiKey) if you want the 'Proposal Assembly Agent' to actually write copy.
+    
     const slides: ProposalSlide[] = [
-      { id: 1, title: analysis.programName, content: "제안서\n\n귀사의 성공적인 리더 육성을 위한 제안", type: "cover" },
-      { id: 2, title: "제안 배경 및 목적", content: `본 과정은 ${analysis.targetAudience}을 대상으로 합니다.\n주요 목표:\n${analysis.objectives.map(o => "- " + o).join("\n")}`, type: "overview" },
+      { id: 1, title: analysis.programName, content: `제안서\n\n${analysis.clientName} 귀중\n성공적인 리더 육성을 위한 제안`, type: "cover" },
+      { id: 2, title: "제안 배경 및 목적", content: `본 과정은 ${analysis.clientName} ${analysis.department}의 ${analysis.targetAudience}을 대상으로 합니다.\n주요 목표:\n${analysis.objectives.map(o => "- " + o).join("\n")}`, type: "overview" },
       { id: 3, title: "최신 트렌드 인사이트", content: trends.map(t => `[${t.topic}] ${t.insight} (출처: ${t.source})`).join("\n\n"), type: "trend" },
     ];
 
@@ -192,7 +282,7 @@ export const generateProposalContent = async (analysis: AnalysisResult, trends: 
         });
     });
 
-    slides.push({ id: 99, title: "추진 일정", content: `${analysis.schedule} 진행 예정\n\n사전 진단 -> 본 교육 -> 사후 팔로우업`, type: "schedule" });
+    slides.push({ id: 99, title: "추진 일정 및 장소", content: `${analysis.schedule} 진행 예정\n장소: ${analysis.location}\n\n사전 진단 -> 본 교육 -> 사후 팔로우업`, type: "schedule" });
     slides.push({ id: 100, title: "감사합니다", content: "엑스퍼트컨설팅\n문의: 02-1234-5678", type: "closing" });
 
     return slides;
@@ -204,16 +294,19 @@ export const generateProposalContent = async (analysis: AnalysisResult, trends: 
 export const evaluateProposalQuality = async (
   analysis: AnalysisResult, 
   matches: CourseMatch[], 
-  systemPrompt?: string
+  systemPrompt?: string,
+  apiKey?: string
 ): Promise<QualityAssessment> => {
-  if (!process.env.API_KEY) {
+  const ai = getAI(apiKey);
+
+  if (!ai) {
     return {
       complianceScore: 92,
       complianceReason: "RFP에 명시된 교육 모듈 3가지를 모두 포함하고 있으며 일정과 대상도 정확히 반영됨.",
       instructorExpertiseScore: 88,
       instructorExpertiseReason: "추천된 강사진의 이력이 요구 주제와 잘 매칭되나, 일부 심화 주제는 외부 전문가 고려 필요.",
       industryMatchScore: 85,
-      industryMatchReason: "제안된 사례가 해당 산업군(IT/Tech)에 적합하나, 조금 더 특화된 케이스 스터디 보강 권장.",
+      industryMatchReason: "제안된 사례가 해당 산업군에 적합하나, 조금 더 특화된 케이스 스터디 보강 권장.",
       totalScore: 89,
       overallComment: "전반적으로 우수한 제안서입니다. 트렌드 섹션을 조금 더 보강하면 수주 확률이 높아질 것입니다."
     };

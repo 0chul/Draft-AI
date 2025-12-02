@@ -65,9 +65,10 @@ const App: React.FC = () => {
   const [trends, setTrends] = useState<TrendInsight[]>([]);
   const [matches, setMatches] = useState<CourseMatch[]>([]);
   
-  // New State for Agent Management
+  // New State for Agent Management & API Key
   const [view, setView] = useState<'wizard' | 'agents'>('wizard');
   const [agentConfigs, setAgentConfigs] = useState<AgentConfig[]>(DEFAULT_AGENTS);
+  const [apiKey, setApiKey] = useState<string>('');
 
   // Handlers to advance steps
   const handleUploadComplete = (files: RFPMetadata[]) => {
@@ -139,6 +140,8 @@ const App: React.FC = () => {
                 agents={agentConfigs} 
                 onSave={handleSaveAgents}
                 onClose={() => setView('wizard')}
+                apiKey={apiKey}
+                onSaveApiKey={setApiKey}
             />
         ) : (
             <div className="animate-fade-in-up">
@@ -153,6 +156,9 @@ const App: React.FC = () => {
                     files={uploadedFiles} 
                     onConfirm={handleAnalysisConfirm} 
                     onBack={handleBack}
+                    agentConfig={agentConfigs.find(a => a.id === 'rfp-analyst')}
+                    initialData={analysisResult}
+                    apiKey={apiKey}
                     />
                 )}
 
@@ -163,6 +169,8 @@ const App: React.FC = () => {
                     onNext={handleResearchComplete}
                     onBack={handleBack}
                     agentConfig={agentConfigs.find(a => a.id === 'trend-researcher')}
+                    initialData={trends}
+                    apiKey={apiKey}
                     />
                 )}
 
@@ -174,6 +182,8 @@ const App: React.FC = () => {
                     onNext={handleStrategyComplete} 
                     onBack={handleBack}
                     agentConfig={agentConfigs.find(a => a.id === 'curriculum-matcher')}
+                    initialData={matches}
+                    apiKey={apiKey}
                     />
                 )}
 
@@ -183,6 +193,7 @@ const App: React.FC = () => {
                     trends={trends}
                     matches={matches}
                     agentConfigs={agentConfigs}
+                    apiKey={apiKey}
                     />
                 )}
             </div>

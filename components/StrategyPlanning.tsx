@@ -10,20 +10,24 @@ interface Props {
   onNext: (matches: CourseMatch[]) => void;
   onBack: () => void;
   agentConfig: AgentConfig | undefined;
+  initialData: CourseMatch[];
+  apiKey?: string;
 }
 
-export const StrategyPlanning: React.FC<Props> = ({ analysisData, trendData, onNext, onBack, agentConfig }) => {
-  const [matches, setMatches] = useState<CourseMatch[]>([]);
-  const [loading, setLoading] = useState(true);
+export const StrategyPlanning: React.FC<Props> = ({ analysisData, trendData, onNext, onBack, agentConfig, initialData, apiKey }) => {
+  const [matches, setMatches] = useState<CourseMatch[]>(initialData);
+  const [loading, setLoading] = useState(initialData.length === 0);
 
   useEffect(() => {
-    const loadMatches = async () => {
-      // Now we pass trends to matchCurriculum to inform strategy
-      const results = await matchCurriculum(analysisData.modules, trendData, agentConfig?.systemPrompt);
-      setMatches(results);
-      setLoading(false);
-    };
-    loadMatches();
+    if (initialData.length === 0) {
+        const loadMatches = async () => {
+            // Now we pass trends to matchCurriculum to inform strategy
+            const results = await matchCurriculum(analysisData.modules, trendData, agentConfig?.systemPrompt, apiKey);
+            setMatches(results);
+            setLoading(false);
+        };
+        loadMatches();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
