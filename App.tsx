@@ -1,16 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { StepIndicator } from './components/StepIndicator';
 import { FileUploader } from './components/FileUploader';
 import { RequirementsReview } from './components/RequirementsReview';
 import { TrendResearch } from './components/TrendResearch';
 import { StrategyPlanning } from './components/StrategyPlanning';
-import { InstructorMatching } from './components/InstructorMatching';
 import { ProposalPreview } from './components/ProposalPreview';
 import { AgentManagement } from './components/AgentManagement';
 import { KnowledgeHub } from './components/KnowledgeHub';
 import { Dashboard } from './components/Dashboard';
-import { AppStep, RFPMetadata, AnalysisResult, TrendInsight, CourseMatch, AgentConfig, PastProposal, InstructorProfile, ProposalDraft, StrategyOption } from './types';
+import { AppStep, RFPMetadata, AnalysisResult, TrendInsight, CourseMatch, AgentConfig, PastProposal, InstructorProfile, ProposalDraft } from './types';
 import { Briefcase, Settings, Database, LayoutDashboard } from 'lucide-react';
 
 const DEFAULT_AGENTS: AgentConfig[] = [
@@ -33,18 +31,9 @@ const DEFAULT_AGENTS: AgentConfig[] = [
     guardrails: ['Use only sources from the last 3 years.', 'Focus on enterprise-level trends.']
   },
   {
-    id: 'strategy-planner',
-    name: '전략 기획 에이전트',
-    role: '요구사항과 트렌드를 바탕으로 3가지 차별화된 제안 전략(Option)을 수립합니다.',
-    model: 'gemini-2.5-flash',
-    temperature: 0.7,
-    systemPrompt: 'Generate 3 distinct strategic options for the training proposal. Focus on different angles (e.g., Tech-focused, Culture-focused, Efficiency-focused).',
-    guardrails: ['Ensure all options are actionable.', 'Clearly distinguish between options.']
-  },
-  {
     id: 'curriculum-matcher',
     name: '교육 과정 매칭 컨설턴트',
-    role: '선택된 전략과 요구 모듈에 가장 적합한 내부 교육 과정과 강사를 매칭하고 추천 근거를 작성합니다.',
+    role: '고객의 요구 모듈에 가장 적합한 내부 교육 과정과 강사를 매칭하고 추천 근거를 작성합니다.',
     model: 'gemini-2.5-flash',
     temperature: 0.4,
     systemPrompt: 'You are an expert curriculum planner. Match the following required modules with the best available internal courses. Provide a match score and justification.',
@@ -62,10 +51,10 @@ const DEFAULT_AGENTS: AgentConfig[] = [
   {
     id: 'qa-agent',
     name: '제안 품질 심사위원',
-    role: '전략 수립 단계에서 조언을 제공하고, 최종 제안서의 품질을 평가합니다.',
+    role: '최종 생성된 제안서의 품질을 평가합니다. RFP 준수 여부, 강사 전문성, 산업군 적합성을 평가하여 점수와 이유를 제공합니다.',
     model: 'gemini-2.5-flash',
     temperature: 0.1,
-    systemPrompt: 'You are a strict Quality Assurance auditor for training proposals. Evaluate the proposal based on compliance, expertise, and fit. Provide scores (0-100) and critical reasoning.',
+    systemPrompt: 'You are a strict Quality Assurance auditor for training proposals. Evaluate the proposal based on: 1. Data Compliance (adherence to RFP), 2. Instructor Expertise Match, 3. Industry Fit. Provide scores (0-100) and critical reasoning.',
     guardrails: ['Be objective and critical.', 'Do not hallucinate scores.', 'Provide constructive feedback.']
   }
 ];
@@ -80,9 +69,9 @@ const MOCK_PROPOSALS: PastProposal[] = [
       date: '2024-03-20', 
       tags: ['신입사원', '비전내재화', '팀빌딩'], 
       fileName: '2025_SE_Rookie_Draft.pptx',
-      status: 'Won', 
+      status: 'Review',
       amount: '₩120,000,000',
-      progress: 100,
+      progress: 80,
       qualityAssessment: {
         complianceScore: 95,
         complianceReason: "RFP의 모든 핵심 요구사항을 완벽하게 충족하며, 신입사원 교육의 목적과 부합함.",
@@ -102,9 +91,9 @@ const MOCK_PROPOSALS: PastProposal[] = [
       date: '2024-03-15', 
       tags: ['리더십', 'DT', '금융트렌드'], 
       fileName: 'KB_Digital_Leadership_v2.pptx',
-      status: 'Lost',
+      status: 'Draft',
       amount: '₩85,000,000',
-      progress: 100,
+      progress: 45,
       qualityAssessment: {
         complianceScore: 78,
         complianceReason: "디지털 리더십 관련 핵심 모듈은 포함되었으나, 일부 실습 과정이 RFP 요구사항보다 축소됨.",
@@ -116,18 +105,116 @@ const MOCK_PROPOSALS: PastProposal[] = [
         overallComment: "강사진의 전문성은 뛰어나나, 실습 시간 확보를 위한 커리큘럼 조정이 필요함."
       }
     },
-    {
-      id: 'p3',
-      title: 'SK하이닉스 반도체 입문 과정',
-      clientName: 'SK하이닉스',
-      industry: '제조/반도체',
-      date: '2024-02-10',
-      tags: ['반도체', '공정', '품질'],
-      fileName: 'SK_Semi_Intro_v3.pptx',
+    { 
+      id: 'p3', 
+      title: 'SK텔레콤 AI-Driven Work Way 워크숍', 
+      clientName: 'SK텔레콤', 
+      industry: '통신/IT', 
+      date: '2024-03-10', 
+      tags: ['AI활용', '업무효율화', '애자일'], 
+      fileName: 'SKT_AI_Work.pdf',
       status: 'Submitted',
-      amount: '₩210,000,000',
+      amount: '₩55,000,000',
       progress: 100,
-      qualityAssessment: undefined
+      qualityAssessment: {
+        complianceScore: 82,
+        complianceReason: "AI 활용 도구에 대한 구체적인 명시가 다소 부족함.",
+        instructorExpertiseScore: 95,
+        instructorExpertiseReason: "현업 AI 개발자 출신 강사 배치로 전문성이 매우 높음.",
+        industryMatchScore: 88,
+        industryMatchReason: "통신 업계의 데이터를 예시로 활용하여 현장감이 뛰어남.",
+        totalScore: 88,
+        overallComment: "강사의 전문성이 돋보이나, 실습 도구에 대한 구체적 설명 보완이 필요함."
+      }
+    },
+    { 
+      id: 'p4', 
+      title: 'LG화학 중간관리자 성과관리 과정', 
+      clientName: 'LG화학', 
+      industry: '화학/제조', 
+      date: '2024-02-28', 
+      tags: ['성과관리', '코칭', '피드백'], 
+      fileName: 'LG_Chem_PM.pptx',
+      status: 'Won',
+      amount: '₩150,000,000',
+      progress: 100,
+      qualityAssessment: {
+        complianceScore: 90,
+        complianceReason: "성과관리 프로세스에 대한 고객사 내부 규정을 잘 반영함.",
+        instructorExpertiseScore: 85,
+        instructorExpertiseReason: "리더십 코칭 자격증 보유 강사진으로 구성됨.",
+        industryMatchScore: 78,
+        industryMatchReason: "제조업 특유의 수직적 문화를 고려한 코칭 스킬 제안이 조금 더 필요함.",
+        totalScore: 84,
+        overallComment: "안정적인 제안서이나, 산업 특화 시나리오가 조금 더 보강되면 좋겠습니다."
+      }
+    },
+    { 
+      id: 'p5', 
+      title: '현대자동차 글로벌 역량 강화', 
+      clientName: '현대자동차', 
+      industry: '제조/자동차', 
+      date: '2024-01-15', 
+      tags: ['글로벌', '이문화', '영어'], 
+      fileName: 'HMC_Global_Biz.pptx',
+      status: 'Completed',
+      amount: '₩90,000,000',
+      progress: 100,
+      qualityAssessment: {
+        complianceScore: 88,
+        complianceReason: "글로벌 비즈니스 매너 교육 요청사항을 충실히 반영함.",
+        instructorExpertiseScore: 90,
+        instructorExpertiseReason: "원어민 수준의 강사와 해외 주재원 경험 보유자 매칭.",
+        industryMatchScore: 85,
+        industryMatchReason: "자동차 산업의 글로벌 공급망 이슈를 케이스로 활용함.",
+        totalScore: 87,
+        overallComment: "무난하고 깔끔한 제안서입니다."
+      }
+    },
+    // Moved from MOCK_DRAFTS
+    {
+      id: 'p6',
+      title: '2025 마케팅 역량 강화 과정',
+      clientName: "CJ제일제당",
+      industry: "식품/유통",
+      date: '2024-05-20',
+      tags: ["Digital Marketing", "Data Driven", "Branding"],
+      fileName: 'CJ_Marketing_Competency.pdf',
+      status: 'Completed',
+      amount: '₩70,000,000',
+      progress: 100,
+      qualityAssessment: {
+          complianceScore: 85,
+          complianceReason: "실무 사례 위주 진행 요건을 잘 반영하였습니다.",
+          instructorExpertiseScore: 82,
+          instructorExpertiseReason: "마케팅 전문가는 훌륭하나, 식품 산업 관련 경험이 조금 더 보강되면 좋습니다.",
+          industryMatchScore: 90,
+          industryMatchReason: "CJ 그룹의 톤앤매너를 잘 유지하고 있습니다.",
+          totalScore: 86,
+          overallComment: "무난하게 승인될 것으로 보입니다."
+      }
+    },
+    {
+      id: 'p7',
+      title: '현장 안전 리더십 강화',
+      clientName: "롯데케미칼",
+      industry: "화학/제조",
+      date: '2024-05-19',
+      tags: ["Safety", "Leadership", "Risk Management"],
+      fileName: 'Lotte_Chemical_Safety_Leadership.pdf',
+      status: 'Submitted',
+      amount: '₩45,000,000',
+      progress: 100,
+      qualityAssessment: {
+          complianceScore: 95,
+          complianceReason: "안전 수칙 및 법규 반영이 철저합니다.",
+          instructorExpertiseScore: 92,
+          instructorExpertiseReason: "안전 관리 자격 보유 강사진이 배정되었습니다.",
+          industryMatchScore: 95,
+          industryMatchReason: "화학 플랜트 현장 이해도가 높습니다.",
+          totalScore: 94,
+          overallComment: "매우 우수한 안전 교육 제안서입니다."
+      }
     }
 ];
 
@@ -151,49 +238,86 @@ const MOCK_DRAFTS: ProposalDraft[] = [
         trends: [],
         matches: []
     },
+    // Removed CJ & Lotte (Moved to MOCK_PROPOSALS)
     {
-        id: 'draft-dummy-2',
+        id: 'draft-dummy-4',
         lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-        step: AppStep.PREVIEW,
-        files: [
-            { fileName: '2025_Hyundai_Mobis_Safety_RFP.pdf', fileSize: '5.1 MB', uploadDate: '2024-05-20' }
-        ],
+        step: AppStep.COMPLETE,
+        files: [{ fileName: 'Hanwha_Life_Finance_DT.pdf', fileSize: '2.8 MB', uploadDate: '2024-05-18' }],
         analysis: {
-            clientName: "현대모비스",
-            industry: "제조/자동차",
-            department: "안전환경팀",
-            programName: "2025 현장 안전 리더십 워크숍",
-            objectives: ["중대재해처벌법 대응", "안전 심리 코칭", "현장 소통 강화"],
-            targetAudience: "현장 관리감독자 (120명)",
-            schedule: "2025년 8월",
-            location: "마북 연수원",
-            modules: ["Safety Psychology", "Legal Compliance", "Communication"],
-            specialRequests: "실제 사고 사례 기반 토의 필수"
+             clientName: "한화생명",
+             industry: "금융/보험",
+             department: "인재개발팀",
+             programName: "금융 데이터 리터러시 과정",
+             objectives: ["데이터 활용 능력 향상", "DT 마인드셋 함양", "실무 적용 프로젝트"],
+             targetAudience: "전사 임직원 100명",
+             schedule: "2025년 9월",
+             location: "한화생명 연수원",
+             modules: ["Data Literacy Foundation", "AI Utilization in Finance", "DT Project Workshop"],
+             specialRequests: "금융 데이터 분석 실습 포함"
         },
-        trends: [
-            { topic: "Safety Culture 2.0", insight: "규제 중심에서 자율 안전 문화로의 전환", source: "OSHA Trends", relevanceScore: 92 },
-            { topic: "VR Safety Training", insight: "몰입형 기술을 활용한 위험 예지 훈련", source: "HRD Korea", relevanceScore: 85 }
-        ],
-        selectedStrategy: {
-            id: "strat-safety-1",
-            title: "Psychological Safety First",
-            description: "심리적 접근을 통해 자발적 안전 행동을 유도합니다.",
-            keywords: ["Psychology", "Culture", "Behavior"],
-            rationale: "규제 준수를 넘어선 행동 변화 유도에 최적화됨",
-            qaScore: 92,
-            qaAdvice: "현장 적용성이 매우 높음"
+        trends: [],
+        matches: []
+    },
+    {
+        id: 'draft-dummy-5',
+        lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
+        step: AppStep.COMPLETE,
+        files: [{ fileName: 'GS_Retail_CS_Master.pdf', fileSize: '1.5 MB', uploadDate: '2024-05-15' }],
+        analysis: {
+             clientName: "GS리테일",
+             industry: "유통/서비스",
+             department: "CS기획팀",
+             programName: "CS 마스터 클래스 2025",
+             objectives: ["고객 응대 스킬 고도화", "VOC 관리 및 분석", "감정노동 관리"],
+             targetAudience: "CS 매니저 및 점장",
+             schedule: "2025년 6월",
+             location: "GS타워 대강당",
+             modules: ["Advanced CS Mind", "Communication Skill", "Stress Management"],
+             specialRequests: "롤플레잉 위주 구성"
         },
-        matches: [
-             {
-                id: "match-s1",
-                moduleName: "Safety Psychology",
-                courseTitle: "행동 기반 안전 심리 코칭",
-                instructor: "박안전 수석",
-                matchReason: "심리학 박사 학위 보유 및 건설 현장 컨설팅 경험 풍부",
-                matchScore: 95,
-                isExternal: false
-             }
-        ]
+        trends: [],
+        matches: []
+    },
+    {
+        id: 'draft-dummy-6',
+        lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
+        step: AppStep.PREVIEW,
+        files: [{ fileName: 'Mobis_Autonomous_Safety.pdf', fileSize: '6.2 MB', uploadDate: '2024-05-22' }],
+        analysis: {
+             clientName: "현대모비스",
+             industry: "자동차/부품",
+             department: "안전보건팀",
+             programName: "자율주행 연구원 안전 의식 고취",
+             objectives: ["연구소 안전 수칙 준수", "실험실 위험 관리", "안전 심리 진단"],
+             targetAudience: "R&D 연구원 200명",
+             schedule: "2025년 8월",
+             location: "마북 연구소",
+             modules: ["Lab Safety Protocol", "Behavior Based Safety", "Psychological Safety"],
+             specialRequests: "연구원 특성 고려한 논리적 접근 필요"
+        },
+        trends: [],
+        matches: []
+    },
+    {
+        id: 'draft-dummy-7',
+        lastUpdated: new Date(Date.now() - 1000 * 60 * 15), // 15 mins ago
+        step: AppStep.ANALYSIS,
+        files: [{ fileName: 'POSCO_ESG_Workshop.docx', fileSize: '1.2 MB', uploadDate: '2024-05-22' }],
+        analysis: {
+             clientName: "POSCO",
+             industry: "철강/제조",
+             department: "ESG경영실",
+             programName: "공급망 ESG 실사 대응 워크숍",
+             objectives: ["협력사 ESG 평가 대응", "탄소중립 로드맵 이해"],
+             targetAudience: "구매/조달 담당자",
+             schedule: "2025년 10월",
+             location: "포항 인재창조원",
+             modules: ["Global ESG Standards", "Supply Chain Due Diligence"],
+             specialRequests: "EU 공급망 실사법 위주"
+        },
+        trends: [],
+        matches: []
     }
 ];
 
@@ -205,7 +329,6 @@ const App: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<RFPMetadata[]>([]);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [trends, setTrends] = useState<TrendInsight[]>([]);
-  const [selectedStrategy, setSelectedStrategy] = useState<StrategyOption | undefined>(undefined);
   const [matches, setMatches] = useState<CourseMatch[]>([]);
   
   // Global App State
@@ -283,21 +406,11 @@ const App: React.FC = () => {
     }
   };
 
-  const handleStrategyComplete = (strategy: StrategyOption) => {
-    setSelectedStrategy(strategy);
-    setCurrentStep(AppStep.MATCHING);
-    if (currentDraftId) {
-        if(window.confirm("선택한 제안 전략을 저장하시겠습니까?")) {
-            updateDraft(currentDraftId, { selectedStrategy: strategy, step: AppStep.MATCHING });
-        }
-    }
-  };
-
-  const handleMatchingComplete = (matchData: CourseMatch[]) => {
+  const handleStrategyComplete = (matchData: CourseMatch[]) => {
     setMatches(matchData);
     setCurrentStep(AppStep.PREVIEW);
     if (currentDraftId) {
-        if(window.confirm("과정 매칭 결과를 저장하시겠습니까?")) {
+        if(window.confirm("과정 매칭 및 전략 수립 결과를 저장하시겠습니까?")) {
             updateDraft(currentDraftId, { matches: matchData, step: AppStep.PREVIEW });
         }
     }
@@ -323,10 +436,13 @@ const App: React.FC = () => {
     setUploadedFiles([]);
     setAnalysisResult(null);
     setTrends([]);
-    setSelectedStrategy(undefined);
     setMatches([]);
     setCurrentStep(AppStep.UPLOAD);
+    
+    // Modified: Do not create draft immediately. 
+    // Draft will be created in handleUploadComplete if user confirms save.
     setCurrentDraftId(null);
+    
     setView('wizard');
   };
 
@@ -336,9 +452,9 @@ const App: React.FC = () => {
       setUploadedFiles(draft.files);
       setAnalysisResult(draft.analysis);
       setTrends(draft.trends);
-      setSelectedStrategy(draft.selectedStrategy);
       setMatches(draft.matches);
       setCurrentStep(draft.step);
+      
       setView('wizard');
   };
 
@@ -483,20 +599,6 @@ const App: React.FC = () => {
                     analysisData={analysisResult}
                     trendData={trends}
                     onNext={handleStrategyComplete}
-                    onBack={handleBack}
-                    agentConfig={agentConfigs.find(a => a.id === 'strategy-planner')}
-                    qaAgentConfig={agentConfigs.find(a => a.id === 'qa-agent')}
-                    apiKey={apiKey}
-                    globalModel={globalModel}
-                  />
-                )}
-
-                {currentStep === AppStep.MATCHING && analysisResult && (
-                  <InstructorMatching 
-                    analysisData={analysisResult}
-                    trendData={trends}
-                    selectedStrategy={selectedStrategy}
-                    onNext={handleMatchingComplete}
                     onBack={handleBack}
                     agentConfig={agentConfigs.find(a => a.id === 'curriculum-matcher')}
                     initialData={matches}
