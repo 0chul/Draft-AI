@@ -51,6 +51,7 @@ export interface QualityAssessment {
   industryMatchReason: string;
   totalScore: number;
   overallComment: string;
+  assessmentDate?: string;
 }
 
 export interface AgentConfig {

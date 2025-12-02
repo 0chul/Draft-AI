@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { StepIndicator } from './components/StepIndicator';
 import { FileUploader } from './components/FileUploader';
@@ -172,6 +173,51 @@ const MOCK_PROPOSALS: PastProposal[] = [
         overallComment: "무난하고 깔끔한 제안서입니다."
       }
     },
+    // Moved from MOCK_DRAFTS
+    {
+      id: 'p6',
+      title: '2025 마케팅 역량 강화 과정',
+      clientName: "CJ제일제당",
+      industry: "식품/유통",
+      date: '2024-05-20',
+      tags: ["Digital Marketing", "Data Driven", "Branding"],
+      fileName: 'CJ_Marketing_Competency.pdf',
+      status: 'Completed',
+      amount: '₩70,000,000',
+      progress: 100,
+      qualityAssessment: {
+          complianceScore: 85,
+          complianceReason: "실무 사례 위주 진행 요건을 잘 반영하였습니다.",
+          instructorExpertiseScore: 82,
+          instructorExpertiseReason: "마케팅 전문가는 훌륭하나, 식품 산업 관련 경험이 조금 더 보강되면 좋습니다.",
+          industryMatchScore: 90,
+          industryMatchReason: "CJ 그룹의 톤앤매너를 잘 유지하고 있습니다.",
+          totalScore: 86,
+          overallComment: "무난하게 승인될 것으로 보입니다."
+      }
+    },
+    {
+      id: 'p7',
+      title: '현장 안전 리더십 강화',
+      clientName: "롯데케미칼",
+      industry: "화학/제조",
+      date: '2024-05-19',
+      tags: ["Safety", "Leadership", "Risk Management"],
+      fileName: 'Lotte_Chemical_Safety_Leadership.pdf',
+      status: 'Submitted',
+      amount: '₩45,000,000',
+      progress: 100,
+      qualityAssessment: {
+          complianceScore: 95,
+          complianceReason: "안전 수칙 및 법규 반영이 철저합니다.",
+          instructorExpertiseScore: 92,
+          instructorExpertiseReason: "안전 관리 자격 보유 강사진이 배정되었습니다.",
+          industryMatchScore: 95,
+          industryMatchReason: "화학 플랜트 현장 이해도가 높습니다.",
+          totalScore: 94,
+          overallComment: "매우 우수한 안전 교육 제안서입니다."
+      }
+    }
 ];
 
 const MOCK_INSTRUCTORS: InstructorProfile[] = [
@@ -191,6 +237,87 @@ const MOCK_DRAFTS: ProposalDraft[] = [
             { fileName: 'Reference_Material.pdf', fileSize: '1.8 MB', uploadDate: '2024-05-21' }
         ],
         analysis: null,
+        trends: [],
+        matches: []
+    },
+    // Removed CJ & Lotte (Moved to MOCK_PROPOSALS)
+    {
+        id: 'draft-dummy-4',
+        lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
+        step: AppStep.COMPLETE,
+        files: [{ fileName: 'Hanwha_Life_Finance_DT.pdf', fileSize: '2.8 MB', uploadDate: '2024-05-18' }],
+        analysis: {
+             clientName: "한화생명",
+             industry: "금융/보험",
+             department: "인재개발팀",
+             programName: "금융 데이터 리터러시 과정",
+             objectives: ["데이터 활용 능력 향상", "DT 마인드셋 함양", "실무 적용 프로젝트"],
+             targetAudience: "전사 임직원 100명",
+             schedule: "2025년 9월",
+             location: "한화생명 연수원",
+             modules: ["Data Literacy Foundation", "AI Utilization in Finance", "DT Project Workshop"],
+             specialRequests: "금융 데이터 분석 실습 포함"
+        },
+        trends: [],
+        matches: []
+    },
+    {
+        id: 'draft-dummy-5',
+        lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 48), // 2 days ago
+        step: AppStep.COMPLETE,
+        files: [{ fileName: 'GS_Retail_CS_Master.pdf', fileSize: '1.5 MB', uploadDate: '2024-05-15' }],
+        analysis: {
+             clientName: "GS리테일",
+             industry: "유통/서비스",
+             department: "CS기획팀",
+             programName: "CS 마스터 클래스 2025",
+             objectives: ["고객 응대 스킬 고도화", "VOC 관리 및 분석", "감정노동 관리"],
+             targetAudience: "CS 매니저 및 점장",
+             schedule: "2025년 6월",
+             location: "GS타워 대강당",
+             modules: ["Advanced CS Mind", "Communication Skill", "Stress Management"],
+             specialRequests: "롤플레잉 위주 구성"
+        },
+        trends: [],
+        matches: []
+    },
+    {
+        id: 'draft-dummy-6',
+        lastUpdated: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
+        step: AppStep.PREVIEW,
+        files: [{ fileName: 'Mobis_Autonomous_Safety.pdf', fileSize: '6.2 MB', uploadDate: '2024-05-22' }],
+        analysis: {
+             clientName: "현대모비스",
+             industry: "자동차/부품",
+             department: "안전보건팀",
+             programName: "자율주행 연구원 안전 의식 고취",
+             objectives: ["연구소 안전 수칙 준수", "실험실 위험 관리", "안전 심리 진단"],
+             targetAudience: "R&D 연구원 200명",
+             schedule: "2025년 8월",
+             location: "마북 연구소",
+             modules: ["Lab Safety Protocol", "Behavior Based Safety", "Psychological Safety"],
+             specialRequests: "연구원 특성 고려한 논리적 접근 필요"
+        },
+        trends: [],
+        matches: []
+    },
+    {
+        id: 'draft-dummy-7',
+        lastUpdated: new Date(Date.now() - 1000 * 60 * 15), // 15 mins ago
+        step: AppStep.ANALYSIS,
+        files: [{ fileName: 'POSCO_ESG_Workshop.docx', fileSize: '1.2 MB', uploadDate: '2024-05-22' }],
+        analysis: {
+             clientName: "POSCO",
+             industry: "철강/제조",
+             department: "ESG경영실",
+             programName: "공급망 ESG 실사 대응 워크숍",
+             objectives: ["협력사 ESG 평가 대응", "탄소중립 로드맵 이해"],
+             targetAudience: "구매/조달 담당자",
+             schedule: "2025년 10월",
+             location: "포항 인재창조원",
+             modules: ["Global ESG Standards", "Supply Chain Due Diligence"],
+             specialRequests: "EU 공급망 실사법 위주"
+        },
         trends: [],
         matches: []
     }
@@ -222,6 +349,14 @@ const App: React.FC = () => {
     updates: Partial<ProposalDraft>
   ) => {
     setDrafts(prev => prev.map(d => d.id === id ? { ...d, ...updates, lastUpdated: new Date() } : d));
+  };
+
+  const handleDeleteDraft = (id: string) => {
+      setDrafts(prev => prev.filter(d => d.id !== id));
+      if (currentDraftId === id) {
+          setCurrentDraftId(null);
+          setView('dashboard');
+      }
   };
 
   // Handlers to advance steps
@@ -324,6 +459,31 @@ const App: React.FC = () => {
       setView('wizard');
   };
 
+  const handleUpdateDraftStatus = (id: string, newStatus: 'Won' | 'Lost') => {
+      const draft = drafts.find(d => d.id === id);
+      if (!draft) return;
+
+      if(window.confirm(`이 제안서를 '${newStatus === 'Won' ? '수주 성공' : '수주 실패'}' 상태로 변경하고 아카이브 하시겠습니까?`)) {
+          // Create a past proposal entry
+          const newProposal: PastProposal = {
+              id: draft.id,
+              title: draft.analysis?.programName || 'Untitled Project',
+              clientName: draft.analysis?.clientName || 'Unknown Client',
+              industry: draft.analysis?.industry || 'Unknown Industry',
+              date: new Date().toISOString().split('T')[0],
+              tags: draft.analysis?.modules || [],
+              fileName: draft.files[0]?.fileName || 'proposal_final.pptx',
+              status: newStatus,
+              amount: newStatus === 'Won' ? '₩50,000,000' : '₩0', // Dummy amount
+              progress: 100,
+              qualityAssessment: undefined 
+          };
+
+          setPastProposals(prev => [newProposal, ...prev]);
+          setDrafts(prev => prev.filter(d => d.id !== id));
+      }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       {/* Header */}
@@ -378,6 +538,8 @@ const App: React.FC = () => {
               onNewProposal={startNewProposal} 
               onResumeDraft={resumeDraft}
               onViewAll={() => setView('knowledge')} 
+              onUpdateDraftStatus={handleUpdateDraftStatus}
+              onDeleteDraft={handleDeleteDraft}
             />
         ) : view === 'knowledge' ? (
            <KnowledgeHub 

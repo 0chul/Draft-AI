@@ -1,8 +1,9 @@
 
+
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, AgentConfig, QualityAssessment } from '../types';
 import { generateProposalContent, evaluateProposalQuality } from '../services/geminiService';
-import { Download, Check, Maximize2, ShieldCheck, AlertCircle, ChevronLeft } from 'lucide-react';
+import { Download, Check, Maximize2, ShieldCheck, AlertCircle, ChevronLeft, RefreshCw } from 'lucide-react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface Props {
@@ -37,6 +38,13 @@ export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, ag
     createDraft();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const handleReevaluate = async () => {
+    setEvaluating(true);
+    const qualityResult = await evaluateProposalQuality(analysis, matches, qaAgent?.systemPrompt, apiKey);
+    setAssessment(qualityResult);
+    setEvaluating(false);
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 90) return "text-green-600";
@@ -85,11 +93,28 @@ export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, ag
       {/* Quality Assessment Section */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-teal-50">
-            <h3 className="text-lg font-bold text-teal-900 flex items-center gap-2">
-                <ShieldCheck size={20} />
-                제안서 품질 평가 리포트
-            </h3>
-            <span className="text-xs font-semibold bg-teal-200 text-teal-800 px-2 py-1 rounded">By {qaAgent?.name}</span>
+            <div className="flex items-center gap-3">
+                <h3 className="text-lg font-bold text-teal-900 flex items-center gap-2">
+                    <ShieldCheck size={20} />
+                    제안서 품질 평가 리포트
+                </h3>
+                {assessment?.assessmentDate && (
+                    <span className="text-xs text-teal-600 font-medium bg-teal-100/50 px-2 py-0.5 rounded-full border border-teal-100">
+                        {new Date(assessment.assessmentDate).toLocaleString()}
+                    </span>
+                )}
+            </div>
+            <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold bg-teal-200 text-teal-800 px-2 py-1 rounded mr-2">By {qaAgent?.name}</span>
+                <button 
+                    onClick={handleReevaluate} 
+                    disabled={evaluating}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white text-teal-700 text-xs font-bold border border-teal-200 rounded hover:bg-teal-50 transition-colors disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                >
+                    <RefreshCw size={12} className={evaluating ? "animate-spin" : ""} />
+                    다시 점검하기
+                </button>
+            </div>
         </div>
         
         {evaluating ? (

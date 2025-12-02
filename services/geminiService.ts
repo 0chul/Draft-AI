@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, QualityAssessment, PastProposal } from "../types";
 
@@ -224,6 +225,8 @@ export const matchCurriculum = async (modules: string[], trends: TrendInsight[],
       요구 모듈: ${modules.join(", ")}
       참고 트렌드: ${trendSummary}
       
+      **중요: 'matchReason'은 100자 이내로 간결하게 작성하세요. 너무 긴 응답은 피하세요.**
+      
       응답 JSON 포맷:
       [{ "id": string, "moduleName": string, "courseTitle": string, "instructor": string, "matchReason": string, "matchScore": number, "isExternal": boolean }]
       
@@ -232,6 +235,7 @@ export const matchCurriculum = async (modules: string[], trends: TrendInsight[],
 
     const config: any = {
       responseMimeType: "application/json",
+      maxOutputTokens: 4000, // Prevent runaway generation
       responseSchema: {
         type: Type.ARRAY,
         items: {
@@ -321,7 +325,8 @@ export const evaluateProposalQuality = async (
       industryMatchScore: 85,
       industryMatchReason: "제안된 사례가 해당 산업군에 적합하나, 조금 더 특화된 케이스 스터디 보강 권장.",
       totalScore: 89,
-      overallComment: "전반적으로 우수한 제안서입니다. 트렌드 섹션을 조금 더 보강하면 수주 확률이 높아질 것입니다."
+      overallComment: "전반적으로 우수한 제안서입니다. 트렌드 섹션을 조금 더 보강하면 수주 확률이 높아질 것입니다.",
+      assessmentDate: new Date().toISOString()
     };
   }
 
@@ -369,7 +374,8 @@ export const evaluateProposalQuality = async (
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     
-    return JSON.parse(cleanJsonString(text)) as QualityAssessment;
+    const result = JSON.parse(cleanJsonString(text)) as QualityAssessment;
+    return { ...result, assessmentDate: new Date().toISOString() };
 
   } catch (error) {
     console.error("Gemini QA Error:", error);
@@ -381,7 +387,8 @@ export const evaluateProposalQuality = async (
       industryMatchScore: 0,
       industryMatchReason: "Evaluation Failed",
       totalScore: 0,
-      overallComment: "AI service unavailable."
+      overallComment: "AI service unavailable.",
+      assessmentDate: new Date().toISOString()
     };
   }
 };
@@ -408,7 +415,8 @@ export const evaluatePastProposal = async (
       industryMatchScore: 90 + Math.floor(Math.random() * 8),
       industryMatchReason: `${proposal.industry} 분야의 특성을 잘 파악한 커리큘럼 구성이 돋보입니다.`,
       totalScore: 88,
-      overallComment: "안정적인 수주가 예상되는 우수한 품질의 제안서입니다. 추후 유사 제안 시 참고 가치가 높습니다."
+      overallComment: "안정적인 수주가 예상되는 우수한 품질의 제안서입니다. 추후 유사 제안 시 참고 가치가 높습니다.",
+      assessmentDate: new Date().toISOString()
     };
   }
 
@@ -464,7 +472,8 @@ export const evaluatePastProposal = async (
     const text = response.text;
     if (!text) throw new Error("No response from AI");
     
-    return JSON.parse(cleanJsonString(text)) as QualityAssessment;
+    const result = JSON.parse(cleanJsonString(text)) as QualityAssessment;
+    return { ...result, assessmentDate: new Date().toISOString() };
 
   } catch (error) {
     console.error("Gemini Past Proposal QA Error:", error);
@@ -476,7 +485,8 @@ export const evaluatePastProposal = async (
       industryMatchScore: 0,
       industryMatchReason: "Evaluation Failed",
       totalScore: 0,
-      overallComment: "AI service unavailable."
+      overallComment: "AI service unavailable.",
+      assessmentDate: new Date().toISOString()
     };
   }
 };
