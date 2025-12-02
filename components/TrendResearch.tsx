@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, TrendInsight, AgentConfig } from '../types';
 import { fetchTrendInsights } from '../services/geminiService';
-import { TrendingUp, ArrowRight, ChevronLeft } from 'lucide-react';
+import { TrendingUp, ArrowRight, ChevronLeft, RefreshCw } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface Props {
@@ -20,15 +20,21 @@ export const TrendResearch: React.FC<Props> = ({ analysisData, onNext, onBack, a
 
   useEffect(() => {
     if (initialData.length === 0) {
-        const loadTrends = async () => {
-        const results = await fetchTrendInsights(analysisData.modules, agentConfig?.systemPrompt, apiKey, agentConfig?.model, globalModel);
-        setTrends(results);
-        setLoading(false);
-        };
         loadTrends();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const loadTrends = async () => {
+    const results = await fetchTrendInsights(analysisData.modules, agentConfig?.systemPrompt, apiKey, agentConfig?.model, globalModel);
+    setTrends(results);
+    setLoading(false);
+  };
+
+  const handleReanalyze = async () => {
+    setLoading(true);
+    await loadTrends();
+  };
 
   if (loading) {
     return (
@@ -102,19 +108,27 @@ export const TrendResearch: React.FC<Props> = ({ analysisData, onNext, onBack, a
         </div>
       </section>
 
-      <div className="flex justify-between pt-4">
+      <div className="flex justify-between pt-4 items-center">
         <button 
             onClick={onBack}
             className="flex items-center gap-1 px-4 py-2 text-slate-500 hover:text-slate-800 font-medium text-sm transition-colors"
         >
             <ChevronLeft size={16} /> 이전 단계
         </button>
-        <button 
-          onClick={() => onNext(trends)}
-          className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-        >
-          트렌드 기반 전략 수립하기 <ArrowRight size={18} />
-        </button>
+        <div className="flex gap-3">
+            <button 
+                onClick={handleReanalyze}
+                className="px-4 py-3 font-medium text-slate-600 hover:text-slate-900 flex items-center gap-2 transition-colors rounded-lg hover:bg-slate-100"
+            >
+                <RefreshCw size={16} /> 다시 분석하기
+            </button>
+            <button 
+              onClick={() => onNext(trends)}
+              className="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition-all flex items-center gap-2"
+            >
+              트렌드 기반 전략 수립하기 <ArrowRight size={18} />
+            </button>
+        </div>
       </div>
     </div>
   );

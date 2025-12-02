@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { PastProposal, ProposalDraft, AppStep } from '../types';
-import { Plus, FileText, Clock, TrendingUp, ArrowUpRight, FolderOpen, PlayCircle, Award, XCircle, Trash2, CheckCircle, Edit } from 'lucide-react';
+import { Plus, FileText, Clock, TrendingUp, ArrowUpRight, FolderOpen, PlayCircle, Award, XCircle, Trash2, CheckCircle, Edit, FilterX } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface Props {
@@ -24,17 +24,34 @@ const STATS_DATA = [
 ];
 
 export const Dashboard: React.FC<Props> = ({ proposals, drafts, onNewProposal, onResumeDraft, onViewAll, onUpdateDraftStatus, onDeleteDraft }) => {
+  const [filterStatus, setFilterStatus] = useState<'All' | 'Won' | 'Lost' | 'InProgress'>('All');
+
   // Filter drafts into In Progress vs Completed
-  const inProgressDrafts = drafts.filter(d => d.step < AppStep.COMPLETE);
-  const completedDrafts = drafts.filter(d => d.step === AppStep.COMPLETE);
+  // With 'Complete' step removed, we consider PREVIEW as the final state (Review/Pending)
+  const inProgressDrafts = drafts.filter(d => d.step < AppStep.PREVIEW);
+  const completedDrafts = drafts.filter(d => d.step === AppStep.PREVIEW);
 
   // Calculate stats
   const totalProposals = proposals.length;
   // Active drafts now include both in-progress and those waiting for result
   const activeDraftsCount = drafts.length;
   
-  // Sort by date desc
-  const recentProposals = [...proposals].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5);
+  const wonCount = proposals.filter(p => p.status === 'Won').length;
+  const lostCount = proposals.filter(p => p.status === 'Lost').length;
+
+  // Filter logic for the list
+  const displayedProposals = proposals
+      .filter(p => filterStatus === 'All' || p.status === filterStatus)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+
+  const handleFilterToggle = (status: 'Won' | 'Lost') => {
+    if (filterStatus === status) {
+      setFilterStatus('All');
+    } else {
+      setFilterStatus(status);
+    }
+  };
 
   const getStatusStyle = (status?: string) => {
     switch (status) {
@@ -53,14 +70,15 @@ export const Dashboard: React.FC<Props> = ({ proposals, drafts, onNewProposal, o
         case AppStep.UPLOAD: return "RFP 파일 업로드";
         case AppStep.ANALYSIS: return "요구사항 분석";
         case AppStep.RESEARCH: return "트렌드 리서치";
-        case AppStep.STRATEGY: return "전략 및 과정 매칭";
-        case AppStep.PREVIEW: return "제안서 초안 검토";
-        case AppStep.COMPLETE: return "완료";
+        case AppStep.STRATEGY: return "전략 수립";
+        case AppStep.MATCHING: return "강사 매칭";
+        case AppStep.PREVIEW: return "제안서 구성";
         default: return "준비 중";
     }
   };
 
   const getStepProgress = (step: AppStep) => {
+      // Adjusted denominator since there are now 6 steps
       return (step / 6) * 100;
   };
 
@@ -95,14 +113,19 @@ export const Dashboard: React.FC<Props> = ({ proposals, drafts, onNewProposal, o
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Total Card */}
+        <div 
+            onClick={() => setFilterStatus('All')}
+            className={`bg-white p-6 rounded-xl border cursor-pointer transition-all hover:shadow-md
+            ${filterStatus === 'All' ? 'border-blue-500 ring-1 ring-blue-500 shadow-md' : 'border-slate-200 shadow-sm'}`}
+        >
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-sm font-medium text-slate-500">총 제안 건수 (YTD)</p>
                     <h3 className="text-3xl font-bold text-slate-900 mt-2">{totalProposals + 12}</h3>
                 </div>
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                <div className={`p-2 rounded-lg ${filterStatus === 'All' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}>
                     <FileText size={24} />
                 </div>
             </div>
@@ -112,13 +135,58 @@ export const Dashboard: React.FC<Props> = ({ proposals, drafts, onNewProposal, o
             </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        {/* Won Card */}
+        <div 
+            onClick={() => handleFilterToggle('Won')}
+            className={`bg-white p-6 rounded-xl border cursor-pointer transition-all hover:shadow-md
+            ${filterStatus === 'Won' ? 'border-green-500 ring-1 ring-green-500 shadow-md' : 'border-slate-200 shadow-sm'}`}
+        >
+            <div className="flex justify-between items-start">
+                <div>
+                    <p className="text-sm font-medium text-slate-500">수주 성공 (Won)</p>
+                    <h3 className="text-3xl font-bold text-slate-900 mt-2">{wonCount}</h3>
+                </div>
+                <div className={`p-2 rounded-lg ${filterStatus === 'Won' ? 'bg-green-600 text-white' : 'bg-green-50 text-green-600'}`}>
+                    <Award size={24} />
+                </div>
+            </div>
+            <div className="mt-4 flex items-center text-sm">
+                 <span className="text-slate-400 text-xs">클릭하여 필터링</span>
+            </div>
+        </div>
+
+        {/* Lost Card */}
+        <div 
+            onClick={() => handleFilterToggle('Lost')}
+            className={`bg-white p-6 rounded-xl border cursor-pointer transition-all hover:shadow-md
+            ${filterStatus === 'Lost' ? 'border-red-500 ring-1 ring-red-500 shadow-md' : 'border-slate-200 shadow-sm'}`}
+        >
+            <div className="flex justify-between items-start">
+                <div>
+                    <p className="text-sm font-medium text-slate-500">수주 실패 (Lost)</p>
+                    <h3 className="text-3xl font-bold text-slate-900 mt-2">{lostCount}</h3>
+                </div>
+                <div className={`p-2 rounded-lg ${filterStatus === 'Lost' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-600'}`}>
+                    <XCircle size={24} />
+                </div>
+            </div>
+            <div className="mt-4 flex items-center text-sm">
+                 <span className="text-slate-400 text-xs">클릭하여 필터링</span>
+            </div>
+        </div>
+
+        {/* In Progress Card */}
+        <div 
+            onClick={() => setFilterStatus(filterStatus === 'InProgress' ? 'All' : 'InProgress')}
+            className={`bg-white p-6 rounded-xl border cursor-pointer transition-all hover:shadow-md
+            ${filterStatus === 'InProgress' ? 'border-amber-500 ring-1 ring-amber-500 shadow-md' : 'border-slate-200 shadow-sm'}`}
+        >
             <div className="flex justify-between items-start">
                 <div>
                     <p className="text-sm font-medium text-slate-500">진행 중인 프로젝트</p>
                     <h3 className="text-3xl font-bold text-slate-900 mt-2">{activeDraftsCount}</h3>
                 </div>
-                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg">
+                <div className={`p-2 rounded-lg ${filterStatus === 'InProgress' ? 'bg-amber-600 text-white' : 'bg-amber-50 text-amber-600'}`}>
                     <Clock size={24} />
                 </div>
             </div>
@@ -129,7 +197,7 @@ export const Dashboard: React.FC<Props> = ({ proposals, drafts, onNewProposal, o
       </div>
 
       {/* SECTION 1: DRAFTS IN PROGRESS */}
-      {inProgressDrafts.length > 0 && (
+      {(filterStatus === 'All' || filterStatus === 'InProgress') && inProgressDrafts.length > 0 && (
           <div className="space-y-4">
              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <FolderOpen size={20} className="text-blue-600" />
@@ -186,7 +254,7 @@ export const Dashboard: React.FC<Props> = ({ proposals, drafts, onNewProposal, o
       )}
 
       {/* SECTION 1.5: COMPLETED DRAFTS PENDING DECISION */}
-      {completedDrafts.length > 0 && (
+      {(filterStatus === 'All' || filterStatus === 'InProgress') && completedDrafts.length > 0 && (
           <div className="space-y-4">
              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
                 <CheckCircle size={20} className="text-green-600" />
@@ -247,64 +315,90 @@ export const Dashboard: React.FC<Props> = ({ proposals, drafts, onNewProposal, o
       )}
 
       {/* SECTION 2: RECENT COMPLETED / PAST PROPOSALS */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* List */}
-          <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                      <Clock size={20} className="text-slate-500"/>
-                      최근 제안 이력
-                  </h3>
-                  <button onClick={onViewAll} className="text-sm text-blue-600 font-medium hover:underline">
-                      전체 보기
-                  </button>
-              </div>
-              <div className="divide-y divide-slate-100">
-                  {recentProposals.map(proposal => (
-                      <div key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
-                          <div className="flex items-center gap-4">
-                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${getStatusStyle(proposal.status)}`}>
-                                  {proposal.status && proposal.status[0]}
-                              </div>
-                              <div>
-                                  <h4 className="font-bold text-slate-800 text-sm">{proposal.title}</h4>
-                                  <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                                      <span>{proposal.clientName}</span>
-                                      <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-                                      <span>{proposal.date}</span>
-                                  </div>
-                              </div>
-                          </div>
-                      </div>
-                  ))}
-              </div>
-          </div>
+      {filterStatus !== 'InProgress' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* List */}
+            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+                    <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <Clock size={20} className="text-slate-500"/>
+                        {filterStatus === 'All' ? '최근 제안 이력' : filterStatus === 'Won' ? '최근 수주 성공 이력' : '최근 수주 실패 이력'}
+                    </h3>
+                    <div className="flex items-center gap-2">
+                        {filterStatus !== 'All' && (
+                            <button 
+                                onClick={() => setFilterStatus('All')} 
+                                className="text-xs flex items-center gap-1 bg-slate-200 text-slate-600 px-2 py-1 rounded hover:bg-slate-300"
+                            >
+                                <FilterX size={12}/> 필터 해제
+                            </button>
+                        )}
+                        <button onClick={onViewAll} className="text-sm text-blue-600 font-medium hover:underline">
+                            전체 보기
+                        </button>
+                    </div>
+                </div>
+                <div className="divide-y divide-slate-100">
+                    {displayedProposals.length === 0 ? (
+                        <div className="p-8 text-center text-slate-500">
+                            해당 조건의 제안 이력이 없습니다.
+                        </div>
+                    ) : (
+                        displayedProposals.map(proposal => (
+                            <div key={proposal.id} className="p-4 hover:bg-slate-50 transition-colors flex items-center justify-between group">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${getStatusStyle(proposal.status)}`}>
+                                        {proposal.status && proposal.status[0]}
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-800 text-sm">{proposal.title}</h4>
+                                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
+                                            <span>{proposal.clientName}</span>
+                                            <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
+                                            <span>{proposal.date}</span>
+                                            {proposal.status && (
+                                                <span className={`px-1.5 py-0.5 rounded text-[10px] ${getStatusStyle(proposal.status)}`}>
+                                                    {proposal.status}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="text-sm font-bold text-slate-700">{proposal.amount}</div>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
 
-          {/* Chart */}
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
-              <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
-                  <TrendingUp size={20} className="text-slate-500"/>
-                  월별 제안 성과
-              </h3>
-              <div className="flex-1 w-full min-h-[200px]">
-                <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={STATS_DATA}>
-                        <defs>
-                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
-                        <YAxis hide />
-                        <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
-                        <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
-                    </AreaChart>
-                </ResponsiveContainer>
-              </div>
-          </div>
-      </div>
+            {/* Chart */}
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6 flex flex-col">
+                <h3 className="text-lg font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <TrendingUp size={20} className="text-slate-500"/>
+                    월별 제안 성과
+                </h3>
+                <div className="flex-1 w-full min-h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={STATS_DATA}>
+                            <defs>
+                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 12, fill: '#94a3b8'}} />
+                            <YAxis hide />
+                            <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                            <Area type="monotone" dataKey="value" stroke="#3b82f6" fillOpacity={1} fill="url(#colorValue)" strokeWidth={3} />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+        </div>
+      )}
     </div>
   );
 };
