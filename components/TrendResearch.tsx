@@ -42,7 +42,7 @@ export const TrendResearch: React.FC<Props> = ({ analysisData, onNext, onBack, a
         <div className="text-center space-y-2">
            <h3 className="text-lg font-semibold text-slate-800">시장 트렌드 분석 중...</h3>
            <p className="text-slate-500">
-             <span className="font-semibold text-indigo-600">{agentConfig?.name || 'Trend Agent'}</span>가 최신 HRD 및 산업 동향을 검색하고 있습니다.
+             <span className="font-semibold text-indigo-600">{agentConfig?.name || '트렌드 인사이트 연구원'}</span>가 최신 HRD 및 산업 동향을 검색하고 있습니다.
            </p>
         </div>
       </div>

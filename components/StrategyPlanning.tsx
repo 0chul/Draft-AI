@@ -43,7 +43,7 @@ export const StrategyPlanning: React.FC<Props> = ({ analysisData, trendData, onN
         <div className="text-center space-y-2">
            <h3 className="text-lg font-semibold text-slate-800">전략적 교육 과정 매칭 중...</h3>
            <p className="text-slate-500">
-             <span className="font-semibold text-blue-600">{agentConfig?.name || 'Matching Agent'}</span>가<br/>
+             <span className="font-semibold text-blue-600">{agentConfig?.name || '교육 과정 매칭 컨설턴트'}</span>가<br/>
              RFP 요구사항과 트렌드 분석 결과를 종합하여 최적의 솔루션을 설계합니다.
            </p>
         </div>

@@ -72,6 +72,12 @@ export interface PastProposal {
   date: string;
   tags: string[];
   fileName: string;
+  // Dashboard specific fields
+  status?: 'Draft' | 'Review' | 'Completed' | 'Submitted' | 'Won' | 'Lost';
+  amount?: string;
+  progress?: number;
+  // New field for stored QA results
+  qualityAssessment?: QualityAssessment;
 }
 
 export interface InstructorProfile {
@@ -91,4 +97,16 @@ export enum AppStep {
   STRATEGY = 4,
   PREVIEW = 5,
   COMPLETE = 6
+}
+
+export interface ProposalDraft {
+  id: string;
+  lastUpdated: Date;
+  step: AppStep;
+  
+  // State snapshot
+  files: RFPMetadata[];
+  analysis: AnalysisResult | null;
+  trends: TrendInsight[];
+  matches: CourseMatch[];
 }

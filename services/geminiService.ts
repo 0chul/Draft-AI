@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, QualityAssessment } from "../types";
+import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, QualityAssessment, PastProposal } from "../types";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
 
@@ -9,6 +9,14 @@ const getAI = (apiKey?: string) => {
   const key = apiKey || process.env.API_KEY;
   if (!key) return null;
   return new GoogleGenAI({ apiKey: key });
+};
+
+// Helper to clean JSON string
+const cleanJsonString = (text: string): string => {
+  if (!text) return "";
+  // Remove markdown code blocks if present
+  let cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "");
+  return cleaned.trim();
 };
 
 /**
@@ -53,6 +61,8 @@ export const analyzeRFP = async (fileName: string, systemPrompt?: string, apiKey
       Analyze the RFP file named "${fileName}". 
       Since I cannot upload the actual PDF content in this demo, please hallucinate a realistic RFP content based on the filename.
       Infer the industry, typical objectives for such a file name, and likely modules.
+      
+      **CRITICAL: Provide a concise summary. Do not generate lengthy descriptions or filler text. Keep strings under 200 characters where possible.**
       
       Return the result in JSON format matching this schema:
       {
@@ -100,7 +110,8 @@ export const analyzeRFP = async (fileName: string, systemPrompt?: string, apiKey
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    return JSON.parse(text) as AnalysisResult;
+    
+    return JSON.parse(cleanJsonString(text)) as AnalysisResult;
 
   } catch (error) {
     console.error("Gemini Analysis Error:", error);
@@ -172,7 +183,8 @@ export const fetchTrendInsights = async (modules: string[], systemPrompt?: strin
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    return JSON.parse(text) as TrendInsight[];
+    
+    return JSON.parse(cleanJsonString(text)) as TrendInsight[];
 
   } catch (error) {
     console.error("Gemini Trend Error:", error);
@@ -249,7 +261,8 @@ export const matchCurriculum = async (modules: string[], trends: TrendInsight[],
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    return JSON.parse(text) as CourseMatch[];
+    
+    return JSON.parse(cleanJsonString(text)) as CourseMatch[];
 
   } catch (error) {
     console.error("Gemini Match Error:", error);
@@ -355,10 +368,106 @@ export const evaluateProposalQuality = async (
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
-    return JSON.parse(text) as QualityAssessment;
+    
+    return JSON.parse(cleanJsonString(text)) as QualityAssessment;
 
   } catch (error) {
     console.error("Gemini QA Error:", error);
+    return {
+      complianceScore: 0,
+      complianceReason: "Evaluation Failed",
+      instructorExpertiseScore: 0,
+      instructorExpertiseReason: "Evaluation Failed",
+      industryMatchScore: 0,
+      industryMatchReason: "Evaluation Failed",
+      totalScore: 0,
+      overallComment: "AI service unavailable."
+    };
+  }
+};
+
+/**
+ * Evaluates a past proposal based on limited metadata.
+ * Simulates content understanding for the demo.
+ */
+export const evaluatePastProposal = async (
+  proposal: PastProposal,
+  systemPrompt?: string,
+  apiKey?: string
+): Promise<QualityAssessment> => {
+  const ai = getAI(apiKey);
+
+  if (!ai) {
+    // Fallback Mock Evaluation
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    return {
+      complianceScore: 85 + Math.floor(Math.random() * 10),
+      complianceReason: "과거 제안 이력을 분석한 결과, 고객사 요구사항을 충실히 반영한 것으로 추정됩니다.",
+      instructorExpertiseScore: 80 + Math.floor(Math.random() * 15),
+      instructorExpertiseReason: "해당 산업군 전문 강사진이 투입되었으나, 최신 기술 트렌드 반영도는 보통입니다.",
+      industryMatchScore: 90 + Math.floor(Math.random() * 8),
+      industryMatchReason: `${proposal.industry} 분야의 특성을 잘 파악한 커리큘럼 구성이 돋보입니다.`,
+      totalScore: 88,
+      overallComment: "안정적인 수주가 예상되는 우수한 품질의 제안서입니다. 추후 유사 제안 시 참고 가치가 높습니다."
+    };
+  }
+
+  try {
+    const basePrompt = `
+      You are a Quality Assurance Auditor for past proposals.
+      Based on the metadata provided below, assume the content of the proposal and provide a realistic quality assessment.
+      
+      Proposal Metadata:
+      - Title: ${proposal.title}
+      - Client: ${proposal.clientName}
+      - Industry: ${proposal.industry}
+      - Tags: ${proposal.tags.join(', ')}
+      - Date: ${proposal.date}
+      - Status: ${proposal.status}
+
+      Evaluate on 3 criteria and return in JSON format:
+      1. Compliance Score (0-100) & Reason: adherence to implied client needs.
+      2. Instructor Expertise Score (0-100) & Reason: inferred suitability of expertise based on tags.
+      3. Industry Match Score (0-100) & Reason: relevance to the ${proposal.industry} industry.
+      4. Total Score (0-100) & Overall Comment.
+
+      Make the comments sound professional and specific to the metadata.
+    `;
+
+    const config: any = {
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          complianceScore: { type: Type.INTEGER },
+          complianceReason: { type: Type.STRING },
+          instructorExpertiseScore: { type: Type.INTEGER },
+          instructorExpertiseReason: { type: Type.STRING },
+          industryMatchScore: { type: Type.INTEGER },
+          industryMatchReason: { type: Type.STRING },
+          totalScore: { type: Type.INTEGER },
+          overallComment: { type: Type.STRING },
+        }
+      }
+    };
+
+    if (systemPrompt) {
+      config.systemInstruction = systemPrompt;
+    }
+
+    const response = await ai.models.generateContent({
+      model: DEFAULT_MODEL,
+      contents: basePrompt,
+      config: config
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("No response from AI");
+    
+    return JSON.parse(cleanJsonString(text)) as QualityAssessment;
+
+  } catch (error) {
+    console.error("Gemini Past Proposal QA Error:", error);
     return {
       complianceScore: 0,
       complianceReason: "Evaluation Failed",
