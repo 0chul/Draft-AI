@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { StepIndicator } from './components/StepIndicator';
 import { FileUploader } from './components/FileUploader';
@@ -339,6 +337,7 @@ const App: React.FC = () => {
   
   const [agentConfigs, setAgentConfigs] = useState<AgentConfig[]>(DEFAULT_AGENTS);
   const [apiKey, setApiKey] = useState<string>('');
+  const [globalModel, setGlobalModel] = useState<string>('gemini-2.5-flash');
   
   const [pastProposals, setPastProposals] = useState<PastProposal[]>(MOCK_PROPOSALS);
   const [instructors, setInstructors] = useState<InstructorProfile[]>(MOCK_INSTRUCTORS);
@@ -550,6 +549,7 @@ const App: React.FC = () => {
               onClose={() => setView('dashboard')}
               apiKey={apiKey}
               agentConfigs={agentConfigs}
+              globalModel={globalModel}
            />
         ) : view === 'agents' ? (
            <AgentManagement 
@@ -558,6 +558,8 @@ const App: React.FC = () => {
               onClose={() => setView('dashboard')} 
               apiKey={apiKey}
               onSaveApiKey={setApiKey}
+              globalModel={globalModel}
+              onSaveGlobalModel={setGlobalModel}
            />
         ) : (
            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in-up">
@@ -576,6 +578,7 @@ const App: React.FC = () => {
                     agentConfig={agentConfigs.find(a => a.id === 'rfp-analyst')}
                     initialData={analysisResult}
                     apiKey={apiKey}
+                    globalModel={globalModel}
                   />
                 )}
                 
@@ -587,6 +590,7 @@ const App: React.FC = () => {
                     agentConfig={agentConfigs.find(a => a.id === 'trend-researcher')}
                     initialData={trends}
                     apiKey={apiKey}
+                    globalModel={globalModel}
                   />
                 )}
                 
@@ -599,6 +603,7 @@ const App: React.FC = () => {
                     agentConfig={agentConfigs.find(a => a.id === 'curriculum-matcher')}
                     initialData={matches}
                     apiKey={apiKey}
+                    globalModel={globalModel}
                   />
                 )}
                 
@@ -609,6 +614,7 @@ const App: React.FC = () => {
                     matches={matches}
                     agentConfigs={agentConfigs}
                     apiKey={apiKey}
+                    globalModel={globalModel}
                     onBack={handleBack}
                   />
                 )}

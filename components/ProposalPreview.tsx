@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, AgentConfig, QualityAssessment } from '../types';
 import { generateProposalContent, evaluateProposalQuality } from '../services/geminiService';
@@ -12,10 +10,11 @@ interface Props {
   matches: CourseMatch[];
   agentConfigs: AgentConfig[];
   apiKey?: string;
+  globalModel?: string;
   onBack?: () => void;
 }
 
-export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, agentConfigs, apiKey, onBack }) => {
+export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, agentConfigs, apiKey, globalModel, onBack }) => {
   const [slides, setSlides] = useState<ProposalSlide[]>([]);
   const [assessment, setAssessment] = useState<QualityAssessment | null>(null);
   const [generating, setGenerating] = useState(true);
@@ -31,7 +30,7 @@ export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, ag
       setGenerating(false);
 
       // Run Quality Assessment
-      const qualityResult = await evaluateProposalQuality(analysis, matches, qaAgent?.systemPrompt, apiKey);
+      const qualityResult = await evaluateProposalQuality(analysis, matches, qaAgent?.systemPrompt, apiKey, qaAgent?.model, globalModel);
       setAssessment(qualityResult);
       setEvaluating(false);
     };
@@ -41,7 +40,7 @@ export const ProposalPreview: React.FC<Props> = ({ analysis, trends, matches, ag
 
   const handleReevaluate = async () => {
     setEvaluating(true);
-    const qualityResult = await evaluateProposalQuality(analysis, matches, qaAgent?.systemPrompt, apiKey);
+    const qualityResult = await evaluateProposalQuality(analysis, matches, qaAgent?.systemPrompt, apiKey, qaAgent?.model, globalModel);
     setAssessment(qualityResult);
     setEvaluating(false);
   };

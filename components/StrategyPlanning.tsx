@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, TrendInsight, CourseMatch, AgentConfig } from '../types';
 import { matchCurriculum } from '../services/geminiService';
@@ -12,9 +11,10 @@ interface Props {
   agentConfig: AgentConfig | undefined;
   initialData: CourseMatch[];
   apiKey?: string;
+  globalModel?: string;
 }
 
-export const StrategyPlanning: React.FC<Props> = ({ analysisData, trendData, onNext, onBack, agentConfig, initialData, apiKey }) => {
+export const StrategyPlanning: React.FC<Props> = ({ analysisData, trendData, onNext, onBack, agentConfig, initialData, apiKey, globalModel }) => {
   const [matches, setMatches] = useState<CourseMatch[]>(initialData);
   const [loading, setLoading] = useState(initialData.length === 0);
 
@@ -22,7 +22,7 @@ export const StrategyPlanning: React.FC<Props> = ({ analysisData, trendData, onN
     if (initialData.length === 0) {
         const loadMatches = async () => {
             // Now we pass trends to matchCurriculum to inform strategy
-            const results = await matchCurriculum(analysisData.modules, trendData, agentConfig?.systemPrompt, apiKey);
+            const results = await matchCurriculum(analysisData.modules, trendData, agentConfig?.systemPrompt, apiKey, agentConfig?.model, globalModel);
             setMatches(results);
             setLoading(false);
         };

@@ -1,6 +1,4 @@
-
-
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import { AnalysisResult, TrendInsight, CourseMatch, ProposalSlide, QualityAssessment, PastProposal } from "../types";
 
 const DEFAULT_MODEL = "gemini-2.5-flash";
@@ -20,10 +18,46 @@ const cleanJsonString = (text: string): string => {
   return cleaned.trim();
 };
 
+// Helper for generating content with fallback logic
+const generateWithFallback = async (
+  ai: GoogleGenAI, 
+  primaryModel: string | undefined, 
+  fallbackModel: string | undefined, 
+  contents: string, 
+  config: any
+): Promise<GenerateContentResponse> => {
+  const modelToUse = primaryModel || fallbackModel || DEFAULT_MODEL;
+
+  try {
+    return await ai.models.generateContent({
+      model: modelToUse,
+      contents,
+      config
+    });
+  } catch (error) {
+    // If we have a fallback and the primary model failed (and it wasn't the fallback already)
+    if (primaryModel && fallbackModel && primaryModel !== fallbackModel) {
+      console.warn(`Primary model ${primaryModel} failed. Retrying with fallback model ${fallbackModel}.`, error);
+      return await ai.models.generateContent({
+        model: fallbackModel,
+        contents,
+        config
+      });
+    }
+    throw error;
+  }
+};
+
 /**
  * Simulates analyzing an RFP document.
  */
-export const analyzeRFP = async (fileName: string, systemPrompt?: string, apiKey?: string): Promise<AnalysisResult> => {
+export const analyzeRFP = async (
+  fileName: string, 
+  systemPrompt?: string, 
+  apiKey?: string,
+  model?: string,
+  fallbackModel?: string
+): Promise<AnalysisResult> => {
   const ai = getAI(apiKey);
 
   // If no API key is present, return the dynamic mock data
@@ -57,7 +91,6 @@ export const analyzeRFP = async (fileName: string, systemPrompt?: string, apiKey
   }
 
   try {
-    // Real API Call
     const prompt = `
       Analyze the RFP file named "${fileName}". 
       Since I cannot upload the actual PDF content in this demo, please hallucinate a realistic RFP content based on the filename.
@@ -103,11 +136,7 @@ export const analyzeRFP = async (fileName: string, systemPrompt?: string, apiKey
       config.systemInstruction = systemPrompt;
     }
 
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: prompt,
-      config: config
-    });
+    const response = await generateWithFallback(ai, model, fallbackModel, prompt, config);
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
@@ -135,7 +164,13 @@ export const analyzeRFP = async (fileName: string, systemPrompt?: string, apiKey
 /**
  * Generates Trend Insights based on the analyzed modules.
  */
-export const fetchTrendInsights = async (modules: string[], systemPrompt?: string, apiKey?: string): Promise<TrendInsight[]> => {
+export const fetchTrendInsights = async (
+  modules: string[], 
+  systemPrompt?: string, 
+  apiKey?: string,
+  model?: string,
+  fallbackModel?: string
+): Promise<TrendInsight[]> => {
   const ai = getAI(apiKey);
 
   if (!ai) {
@@ -176,11 +211,7 @@ export const fetchTrendInsights = async (modules: string[], systemPrompt?: strin
       config.systemInstruction = systemPrompt;
     }
 
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: basePrompt,
-      config: config
-    });
+    const response = await generateWithFallback(ai, model, fallbackModel, basePrompt, config);
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
@@ -198,7 +229,14 @@ export const fetchTrendInsights = async (modules: string[], systemPrompt?: strin
 /**
  * Matches internal curriculum to the requirements.
  */
-export const matchCurriculum = async (modules: string[], trends: TrendInsight[], systemPrompt?: string, apiKey?: string): Promise<CourseMatch[]> => {
+export const matchCurriculum = async (
+  modules: string[], 
+  trends: TrendInsight[], 
+  systemPrompt?: string, 
+  apiKey?: string,
+  model?: string,
+  fallbackModel?: string
+): Promise<CourseMatch[]> => {
   const ai = getAI(apiKey);
 
   if (!ai) {
@@ -257,11 +295,7 @@ export const matchCurriculum = async (modules: string[], trends: TrendInsight[],
        config.systemInstruction = systemPrompt;
     }
 
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: basePrompt,
-      config: config
-    });
+    const response = await generateWithFallback(ai, model, fallbackModel, basePrompt, config);
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
@@ -312,7 +346,9 @@ export const evaluateProposalQuality = async (
   analysis: AnalysisResult, 
   matches: CourseMatch[], 
   systemPrompt?: string,
-  apiKey?: string
+  apiKey?: string,
+  model?: string,
+  fallbackModel?: string
 ): Promise<QualityAssessment> => {
   const ai = getAI(apiKey);
 
@@ -365,11 +401,7 @@ export const evaluateProposalQuality = async (
       config.systemInstruction = systemPrompt;
     }
 
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: basePrompt,
-      config: config
-    });
+    const response = await generateWithFallback(ai, model, fallbackModel, basePrompt, config);
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");
@@ -400,7 +432,9 @@ export const evaluateProposalQuality = async (
 export const evaluatePastProposal = async (
   proposal: PastProposal,
   systemPrompt?: string,
-  apiKey?: string
+  apiKey?: string,
+  model?: string,
+  fallbackModel?: string
 ): Promise<QualityAssessment> => {
   const ai = getAI(apiKey);
 
@@ -463,11 +497,7 @@ export const evaluatePastProposal = async (
       config.systemInstruction = systemPrompt;
     }
 
-    const response = await ai.models.generateContent({
-      model: DEFAULT_MODEL,
-      contents: basePrompt,
-      config: config
-    });
+    const response = await generateWithFallback(ai, model, fallbackModel, basePrompt, config);
 
     const text = response.text;
     if (!text) throw new Error("No response from AI");

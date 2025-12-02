@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, RFPMetadata, AgentConfig } from '../types';
 import { analyzeRFP } from '../services/geminiService';
@@ -11,9 +10,10 @@ interface Props {
   agentConfig: AgentConfig | undefined;
   initialData: AnalysisResult | null;
   apiKey?: string;
+  globalModel?: string;
 }
 
-export const RequirementsReview: React.FC<Props> = ({ files, onConfirm, onBack, agentConfig, initialData, apiKey }) => {
+export const RequirementsReview: React.FC<Props> = ({ files, onConfirm, onBack, agentConfig, initialData, apiKey, globalModel }) => {
   const [data, setData] = useState<AnalysisResult | null>(initialData);
   const [loading, setLoading] = useState(!initialData);
   const [isEditing, setIsEditing] = useState(false);
@@ -23,7 +23,7 @@ export const RequirementsReview: React.FC<Props> = ({ files, onConfirm, onBack, 
     // For simulation, we assume the first file is the main RFP, or the agent combines them.
     // We pass the name of the first file to the service.
     const mainFile = files[0].fileName;
-    const result = await analyzeRFP(mainFile, agentConfig?.systemPrompt, apiKey);
+    const result = await analyzeRFP(mainFile, agentConfig?.systemPrompt, apiKey, agentConfig?.model, globalModel);
     setData(result);
     setLoading(false);
   };

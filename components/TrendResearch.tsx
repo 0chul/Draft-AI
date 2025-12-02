@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { AnalysisResult, TrendInsight, AgentConfig } from '../types';
 import { fetchTrendInsights } from '../services/geminiService';
@@ -12,16 +11,17 @@ interface Props {
   agentConfig: AgentConfig | undefined;
   initialData: TrendInsight[];
   apiKey?: string;
+  globalModel?: string;
 }
 
-export const TrendResearch: React.FC<Props> = ({ analysisData, onNext, onBack, agentConfig, initialData, apiKey }) => {
+export const TrendResearch: React.FC<Props> = ({ analysisData, onNext, onBack, agentConfig, initialData, apiKey, globalModel }) => {
   const [trends, setTrends] = useState<TrendInsight[]>(initialData);
   const [loading, setLoading] = useState(initialData.length === 0);
 
   useEffect(() => {
     if (initialData.length === 0) {
         const loadTrends = async () => {
-        const results = await fetchTrendInsights(analysisData.modules, agentConfig?.systemPrompt, apiKey);
+        const results = await fetchTrendInsights(analysisData.modules, agentConfig?.systemPrompt, apiKey, agentConfig?.model, globalModel);
         setTrends(results);
         setLoading(false);
         };
