@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { StepIndicator } from './components/StepIndicator';
 import { FileUploader } from './components/FileUploader';
 import { RequirementsReview } from './components/RequirementsReview';
 import { TrendResearch } from './components/TrendResearch';
 import { StrategyPlanning } from './components/StrategyPlanning';
+import { CurriculumMatching } from './components/CurriculumMatching';
 import { ProposalPreview } from './components/ProposalPreview';
 import { AgentManagement } from './components/AgentManagement';
 import { KnowledgeHub } from './components/KnowledgeHub';
 import { Dashboard } from './components/Dashboard';
-import { AppStep, RFPMetadata, AnalysisResult, TrendInsight, CourseMatch, AgentConfig, PastProposal, InstructorProfile, ProposalDraft } from './types';
+import { AppStep, RFPMetadata, AnalysisResult, TrendInsight, CourseMatch, AgentConfig, PastProposal, InstructorProfile, ProposalDraft, StrategyOption } from './types';
 import { Briefcase, Settings, Database, LayoutDashboard } from 'lucide-react';
 
 const DEFAULT_AGENTS: AgentConfig[] = [
@@ -31,12 +33,21 @@ const DEFAULT_AGENTS: AgentConfig[] = [
     guardrails: ['Use only sources from the last 3 years.', 'Focus on enterprise-level trends.']
   },
   {
+    id: 'strategy-planner',
+    name: '제안 전략 기획자',
+    role: 'RFP와 트렌드를 기반으로 차별화된 제안 컨셉과 전략 방향을 3가지 옵션으로 도출합니다.',
+    model: 'gemini-2.5-flash',
+    temperature: 0.8,
+    systemPrompt: 'Based on the analysis and trends, generate 3 distinct strategic options (Tech-driven, Culture-focused, Practical) for the proposal.',
+    guardrails: ['Ensure strategies are distinct from each other.', 'Align with client industry.']
+  },
+  {
     id: 'curriculum-matcher',
     name: '교육 과정 매칭 컨설턴트',
-    role: '고객의 요구 모듈에 가장 적합한 내부 교육 과정과 강사를 매칭하고 추천 근거를 작성합니다.',
+    role: '선택된 전략에 맞춰 가장 적합한 내부 교육 과정과 강사를 매칭하고 추천 근거를 작성합니다.',
     model: 'gemini-2.5-flash',
     temperature: 0.4,
-    systemPrompt: 'You are an expert curriculum planner. Match the following required modules with the best available internal courses. Provide a match score and justification.',
+    systemPrompt: 'You are an expert curriculum planner. Match the following required modules with the best available internal courses based on the selected strategy. Provide a match score and justification.',
     guardrails: ['Prioritize internal full-time instructors.', 'Match score must be based on keyword relevance.']
   },
   {
@@ -51,10 +62,10 @@ const DEFAULT_AGENTS: AgentConfig[] = [
   {
     id: 'qa-agent',
     name: '제안 품질 심사위원',
-    role: '최종 생성된 제안서의 품질을 평가합니다. RFP 준수 여부, 강사 전문성, 산업군 적합성을 평가하여 점수와 이유를 제공합니다.',
+    role: '전략 방향의 적절성을 사전 평가하고, 최종 제안서의 품질을 심사합니다.',
     model: 'gemini-2.5-flash',
     temperature: 0.1,
-    systemPrompt: 'You are a strict Quality Assurance auditor for training proposals. Evaluate the proposal based on: 1. Data Compliance (adherence to RFP), 2. Instructor Expertise Match, 3. Industry Fit. Provide scores (0-100) and critical reasoning.',
+    systemPrompt: 'You are a strict Quality Assurance auditor for training proposals. Evaluate the proposal/strategy based on: 1. Data Compliance (adherence to RFP), 2. Instructor Expertise Match, 3. Industry Fit. Provide scores (0-100) and critical reasoning.',
     guardrails: ['Be objective and critical.', 'Do not hallucinate scores.', 'Provide constructive feedback.']
   }
 ];
@@ -236,6 +247,7 @@ const MOCK_DRAFTS: ProposalDraft[] = [
         ],
         analysis: null,
         trends: [],
+        selectedStrategy: null,
         matches: []
     },
     // Removed CJ & Lotte (Moved to MOCK_PROPOSALS)
@@ -257,6 +269,7 @@ const MOCK_DRAFTS: ProposalDraft[] = [
              specialRequests: "금융 데이터 분석 실습 포함"
         },
         trends: [],
+        selectedStrategy: null,
         matches: []
     },
     {
@@ -277,6 +290,7 @@ const MOCK_DRAFTS: ProposalDraft[] = [
              specialRequests: "롤플레잉 위주 구성"
         },
         trends: [],
+        selectedStrategy: null,
         matches: []
     },
     {
@@ -297,6 +311,7 @@ const MOCK_DRAFTS: ProposalDraft[] = [
              specialRequests: "연구원 특성 고려한 논리적 접근 필요"
         },
         trends: [],
+        selectedStrategy: null,
         matches: []
     },
     {
@@ -317,6 +332,7 @@ const MOCK_DRAFTS: ProposalDraft[] = [
              specialRequests: "EU 공급망 실사법 위주"
         },
         trends: [],
+        selectedStrategy: null,
         matches: []
     }
 ];
@@ -329,6 +345,7 @@ const App: React.FC = () => {
   const [uploadedFiles, setUploadedFiles] = useState<RFPMetadata[]>([]);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [trends, setTrends] = useState<TrendInsight[]>([]);
+  const [selectedStrategy, setSelectedStrategy] = useState<StrategyOption | null>(null);
   const [matches, setMatches] = useState<CourseMatch[]>([]);
   
   // Global App State
@@ -378,6 +395,7 @@ const App: React.FC = () => {
                  files: files,
                  analysis: null,
                  trends: [],
+                 selectedStrategy: null,
                  matches: []
              };
              setDrafts(prev => [newDraft, ...prev]);
@@ -406,11 +424,21 @@ const App: React.FC = () => {
     }
   };
 
-  const handleStrategyComplete = (matchData: CourseMatch[]) => {
+  const handleStrategyComplete = (strategy: StrategyOption) => {
+      setSelectedStrategy(strategy);
+      setCurrentStep(AppStep.CURRICULUM);
+      if (currentDraftId) {
+        if(window.confirm("선택한 전략을 저장하고 과정 매칭을 진행하시겠습니까?")) {
+            updateDraft(currentDraftId, { selectedStrategy: strategy, step: AppStep.CURRICULUM });
+        }
+    }
+  };
+
+  const handleCurriculumComplete = (matchData: CourseMatch[]) => {
     setMatches(matchData);
     setCurrentStep(AppStep.PREVIEW);
     if (currentDraftId) {
-        if(window.confirm("과정 매칭 및 전략 수립 결과를 저장하시겠습니까?")) {
+        if(window.confirm("과정 매칭 결과를 저장하시겠습니까?")) {
             updateDraft(currentDraftId, { matches: matchData, step: AppStep.PREVIEW });
         }
     }
@@ -436,6 +464,7 @@ const App: React.FC = () => {
     setUploadedFiles([]);
     setAnalysisResult(null);
     setTrends([]);
+    setSelectedStrategy(null);
     setMatches([]);
     setCurrentStep(AppStep.UPLOAD);
     
@@ -452,6 +481,7 @@ const App: React.FC = () => {
       setUploadedFiles(draft.files);
       setAnalysisResult(draft.analysis);
       setTrends(draft.trends);
+      setSelectedStrategy(draft.selectedStrategy);
       setMatches(draft.matches);
       setCurrentStep(draft.step);
       
@@ -599,6 +629,21 @@ const App: React.FC = () => {
                     analysisData={analysisResult}
                     trendData={trends}
                     onNext={handleStrategyComplete}
+                    onBack={handleBack}
+                    agentConfig={agentConfigs.find(a => a.id === 'strategy-planner')}
+                    qaConfig={agentConfigs.find(a => a.id === 'qa-agent')}
+                    initialSelection={selectedStrategy}
+                    apiKey={apiKey}
+                    globalModel={globalModel}
+                  />
+                )}
+
+                {currentStep === AppStep.CURRICULUM && analysisResult && (
+                  <CurriculumMatching 
+                    analysisData={analysisResult}
+                    trendData={trends}
+                    selectedStrategy={selectedStrategy}
+                    onNext={handleCurriculumComplete}
                     onBack={handleBack}
                     agentConfig={agentConfigs.find(a => a.id === 'curriculum-matcher')}
                     initialData={matches}

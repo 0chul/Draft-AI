@@ -26,7 +26,12 @@ export const ResearchAndMatching: React.FC<Props> = ({ analysisData, onNext, age
       const trendResults = await fetchTrendInsights(analysisData.modules, trendAgent?.systemPrompt);
       setTrends(trendResults);
 
-      const matchResults = await matchCurriculum(analysisData.modules, trendResults, matchAgent?.systemPrompt);
+      const matchResults = await matchCurriculum(
+        analysisData.modules, 
+        trendResults, 
+        null, 
+        matchAgent?.systemPrompt
+      );
       setMatches(matchResults);
       
       setLoading(false);

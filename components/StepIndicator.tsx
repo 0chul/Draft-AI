@@ -12,7 +12,8 @@ const steps = [
   { id: AppStep.ANALYSIS, label: "요구사항 확인" },
   { id: AppStep.RESEARCH, label: "시장 분석" },
   { id: AppStep.STRATEGY, label: "전략 수립" },
-  { id: AppStep.PREVIEW, label: "제안서 구성" },
+  { id: AppStep.CURRICULUM, label: "과정/강사 매칭" },
+  { id: AppStep.PREVIEW, label: "제안서 검토" },
   { id: AppStep.COMPLETE, label: "완료" },
 ];
 

@@ -25,6 +25,22 @@ export interface TrendInsight {
   relevanceScore: number;
 }
 
+export interface StrategyOption {
+  id: string;
+  title: string;
+  description: string;
+  keyFeatures: string[];
+  focusArea: string;
+}
+
+export interface StrategyEvaluation {
+  strategyId: string;
+  score: number;
+  reasoning: string;
+  pros: string[];
+  cons: string[];
+}
+
 export interface CourseMatch {
   id: string;
   moduleName: string;
@@ -96,8 +112,9 @@ export enum AppStep {
   ANALYSIS = 2,
   RESEARCH = 3,
   STRATEGY = 4,
-  PREVIEW = 5,
-  COMPLETE = 6
+  CURRICULUM = 5,
+  PREVIEW = 6,
+  COMPLETE = 7
 }
 
 export interface ProposalDraft {
@@ -109,5 +126,6 @@ export interface ProposalDraft {
   files: RFPMetadata[];
   analysis: AnalysisResult | null;
   trends: TrendInsight[];
+  selectedStrategy: StrategyOption | null;
   matches: CourseMatch[];
 }
