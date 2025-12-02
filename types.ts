@@ -25,16 +25,6 @@ export interface TrendInsight {
   relevanceScore: number;
 }
 
-export interface StrategyOption {
-  id: string;
-  title: string;
-  description: string;
-  keywords: string[];
-  rationale: string;
-  qaScore: number;
-  qaAdvice: string;
-}
-
 export interface CourseMatch {
   id: string;
   moduleName: string;
@@ -106,8 +96,8 @@ export enum AppStep {
   ANALYSIS = 2,
   RESEARCH = 3,
   STRATEGY = 4,
-  MATCHING = 5,
-  PREVIEW = 6
+  PREVIEW = 5,
+  COMPLETE = 6
 }
 
 export interface ProposalDraft {
@@ -119,6 +109,5 @@ export interface ProposalDraft {
   files: RFPMetadata[];
   analysis: AnalysisResult | null;
   trends: TrendInsight[];
-  selectedStrategy?: StrategyOption;
   matches: CourseMatch[];
 }
